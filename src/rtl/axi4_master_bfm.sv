@@ -1,5 +1,4 @@
 // QUESTION: Does awid need to increment for every write operation? No, I don't think so.
-
 module axi4_master_bfm(conn);
    axi4_if conn;
 
@@ -285,6 +284,164 @@ module axi4_master_bfm(conn);
 
 
 
+   ////////////////////////////////////////////////////////////////////////////
+   ////////////////////////////////////////////////////////////////////////////
+   // Interface connections
+   ////////////////////////////////////////////////////////////////////////////
+   ////////////////////////////////////////////////////////////////////////////
+   /***************************************************************************
+    * Write address channel
+    ***************************************************************************/
+   localparam awaddr_offset   = 0;
+   localparam awsize_offset   = $bits(conn.awaddr)   + awaddr_offset;
+   localparam awcache_offset  = $bits(conn.awsize)   + awsize_offset;
+   localparam awprot_offset   = $bits(conn.awcache)  + awcache_offset;
+   localparam awlock_offset   = $bits(conn.awprot)   + awprot_offset;
+   localparam awregion_offset = $bits(conn.awlock)   + awlock_offset;
+   localparam awburst_offset  = $bits(conn.awregion) + awregion_offset;
+   localparam awid_offset     = $bits(conn.awburst)  + awburst_offset;
+   localparam awlen_offset    = $bits(conn.awid)     + awid_offset;
+   localparam awqos_offset    = $bits(conn.awlen)    + awlen_offset;
+   localparam awuser_offset   = $bits(conn.awqos)    + awqos_offset;
+
+   handshake_if #(.DATA_BITS($bits(axi4_aw_beat_t)-2)) aw_conn(.clk(conn.aclk), .rst(conn.aresetn));
+   handshake_master write_addr(aw_conn);
+
+   assign conn.awvalid  = aw_conn.valid;
+   assign aw_conn.ready = conn.awready;
+
+   assign conn.awaddr   = aw_conn.data[awaddr_offset   +: $bits(conn.awaddr)  ];
+   assign conn.awsize   = aw_conn.data[awsize_offset   +: $bits(conn.awsize)  ];
+   assign conn.awcache  = aw_conn.data[awcache_offset  +: $bits(conn.awcache) ];
+   assign conn.awprot   = aw_conn.data[awprot_offset   +: $bits(conn.awprot)  ];
+   assign conn.awlock   = aw_conn.data[awlock_offset   +: $bits(conn.awlock)  ];
+   assign conn.awregion = aw_conn.data[awregion_offset +: $bits(conn.awregion)];
+   assign conn.awburst  = aw_conn.data[awburst_offset  +: $bits(conn.awburst) ];
+   assign conn.awid     = aw_conn.data[awid_offset     +: $bits(conn.awid)    ];
+   assign conn.awlen    = aw_conn.data[awlen_offset    +: $bits(conn.awlen)   ];
+   assign conn.awqos    = aw_conn.data[awqos_offset    +: $bits(conn.awqos)   ];
+   assign conn.awuser   = aw_conn.data[awuser_offset   +: $bits(conn.awuser)  ];
+
+   /***************************************************************************
+    * Write data channel
+    ***************************************************************************/
+   localparam wlast_offset = 0;
+   localparam wdata_offset = $bits(conn.wlast) + wlast_offset;
+   localparam wstrb_offset = $bits(conn.wdata) + wdata_offset;
+   localparam wuser_offset = $bits(conn.wstrb) + wstrb_offset;
+
+   handshake_if #(.DATA_BITS($bits(axi4_w_beat_t)-2)) w_conn(.clk(conn.aclk), .rst(conn.aresetn));
+   handshake_master write_data(w_conn);
+
+   assign conn.wvalid   = w_conn.valid;
+   assign w_conn.ready = conn.wready;
+
+   assign conn.wlast    = w_conn.data[wlast_offset +: $bits(conn.wlast)];
+   assign conn.wdata    = w_conn.data[wdata_offset +: $bits(conn.wdata)];
+   assign conn.wstrb    = w_conn.data[wstrb_offset +: $bits(conn.wstrb)];
+   assign conn.wuser    = w_conn.data[wuser_offset +: $bits(conn.wuser)];
+
+   /***************************************************************************
+    * Write response channel
+    ***************************************************************************/
+   localparam bresp_offset = 0;
+   localparam bid_offset   = $bits(conn.bid) + bresp_offset;
+   localparam buser_offset = $bits(conn.buser) + bid_offset;
+
+   handshake_if #(.DATA_BITS($bits(axi4_b_beat_t)-2)) b_conn(.clk(conn.aclk), .rst(conn.aresetn));
+   handshake_slave bresp(b_conn);
+
+   assign b_conn.valid = conn.bwvalid;
+   assign conn.bwready = b_conn.ready;
+
+   assign b_conn.data[bresp_offset +: $bits(conn.bresp)] = conn.bresp;
+   assign b_conn.data[bid_offset   +: $bits(conn.bid)]   = conn.bid;
+   assign b_conn.data[buser_offset +: $bits(conn.buser)] = conn.buser;
+
+   /***************************************************************************
+    * Read address channel
+    ***************************************************************************/
+   localparam araddr_offset   = 0;
+   localparam arcache_offset  = $bits(conn.araddr)   + araddr_offset;
+   localparam arprot_offset   = $bits(conn.arcache)  + arcache_offset;
+   localparam arlock_offset   = $bits(conn.arprot)   + arprot_offset;
+   localparam arregion_offset = $bits(conn.arlock)   + arlock_offset;
+   localparam arsize_offset   = $bits(conn.arregion) + arregion_offset;
+   localparam arburst_offset  = $bits(conn.arsize)   + arsize_offset;
+   localparam arid_offset     = $bits(conn.arburst)  + arburst_offset;
+   localparam arlen_offset    = $bits(conn.arid)     + arid_offset;
+   localparam arqos_offset    = $bits(conn.arlen)    + arlen_offset;
+   localparam aruser_offset   = $bits(conn.arqos)    + arqos_offset;
+
+   handshake_if #(.DATA_BITS($bits(axi4_ar_beat_t)-2)) ar_conn(.clk(conn.aclk), .rst(conn.aresetn));
+   handshake_master read_address(ar_conn);
+
+   assign conn.arvalid   = ar_conn.valid;
+   assign ar_conn.ready  = conn.aready;
+
+   assign conn.araddr    = ar_conn.data[araddr_offset   +: $bits(conn.araddr  )];
+   assign conn.arcache   = ar_conn.data[arcache_offset  +: $bits(conn.arcache )];
+   assign conn.arprot    = ar_conn.data[arprot_offset   +: $bits(conn.arprot  )];
+   assign conn.arlock    = ar_conn.data[arlock_offset   +: $bits(conn.arlock  )];
+   assign conn.arregion  = ar_conn.data[arregion_offset +: $bits(conn.arregion)];
+   assign conn.arsize    = ar_conn.data[arsize_offset   +: $bits(conn.arsize  )];
+   assign conn.arburst   = ar_conn.data[arburst_offset  +: $bits(conn.arburst )];
+   assign conn.arid      = ar_conn.data[arid_offset     +: $bits(conn.arid    )];
+   assign conn.arlen     = ar_conn.data[arlen_offset    +: $bits(conn.arlen   )];
+   assign conn.arqos     = ar_conn.data[arqos_offset    +: $bits(conn.arqos   )];
+   assign conn.aruser    = ar_conn.data[aruser_offset   +: $bits(conn.aruser  )];
+
+
+   /***************************************************************************
+    * Read data channel
+    ***************************************************************************/
+   localparam rlast_offset = 0;
+   localparam rdata_offset = $bits(conn.rlast) + rlast_offset;
+   localparam rresp_offset = $bits(conn.rdata) + rdata_offset;
+   localparam rid_offset   = $bits(conn.rresp) + rresp_offset;
+   localparam ruser_offset = $bits(conn.rid)   + rid_offset;
+
+   handshake_if #(.DATA_BITS($bits(axi4_r_beat_t)-2)) r_conn(.clk(conn.aclk), .rst(conn.aresetn));
+   handshake_slave read_data(r_conn);
+
+   assign r_conn.valid  = conn.rvalid;
+   assign conn.rready   = r_conn.ready;
+
+   assign r_conn.data[rlast_offset +: $bits(conn.rlast)]  = conn.rlast;
+   assign r_conn.data[rdata_offset +: $bits(conn.rdata)]  = conn.rdata;
+   assign r_conn.data[rresp_offset +: $bits(conn.rresp)]  = conn.rresp;
+   assign r_conn.data[rid_offset   +: $bits(conn.rid  )]  = conn.rid;
+   assign r_conn.data[ruser_offset +: $bits(conn.ruser)]  = conn.ruser;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
    // initial begin
    //    $timeformat(-9, 2, " ns", 20);
 
@@ -300,26 +457,26 @@ module axi4_master_bfm(conn);
    //    #1;
 
    //    forever begin
-   // 	 if(axi4_inbox.try_get(temp_beat) != 0) begin
-   // 	    write_beat(temp_beat);
+   //	 if(axi4_inbox.try_get(temp_beat) != 0) begin
+   //	    write_beat(temp_beat);
 
-   // 	    $display("%t: AXI4 Master - Write Data - '%x'", $time, temp_beat.tdata);
+   //	    $display("%t: AXI4 Master - Write Data - '%x'", $time, temp_beat.tdata);
 
-   // 	    @(negedge conn.aclk)
-   // 	    if(conn.tready == '0) begin
-   // 	       wait(conn.tready == '1);
-   // 	    end
+   //	    @(negedge conn.aclk)
+   //	    if(conn.tready == '0) begin
+   //	       wait(conn.tready == '1);
+   //	    end
 
-   // 	    // Wait for device ready
-   // 	    @(posedge conn.aclk && conn.tready == '1);
+   //	    // Wait for device ready
+   //	    @(posedge conn.aclk && conn.tready == '1);
 
-   // 	 end else begin
-   // 	    write_beat(empty_beat);
+   //	 end else begin
+   //	    write_beat(empty_beat);
 
-   // 	    // Wait for the next clock cycle
-   // 	    @(posedge conn.aclk);
+   //	    // Wait for the next clock cycle
+   //	    @(posedge conn.aclk);
 
-   // 	 end
+   //	 end
    //    end
    // end
 
