@@ -1,0 +1,146 @@
+module axi4_full_tb;
+   localparam DATA_BYTES_P    = 4;
+   localparam ADDR_BYTES_P    = 1;
+   localparam NUM_USER_BITS_P = 4;
+   localparam NUM_ID_BITS_P   = 4;
+
+   logic aclk     = 0;
+   logic aresetn  = 0;
+
+   // Write address channel
+   logic                        awvalid;
+   logic			awready;
+   logic [(ADDR_BYTES_P*8)-1:0] awaddr; // 32-bits by spec
+   logic [2:0]			awsize;
+   logic [3:0]			awcache;
+   logic [2:0]			awprot;
+   logic			awlock;
+   logic [3:0]			awregion;
+   logic [1:0]			awburst;
+   logic [NUM_ID_BITS_P-1:0]	awid;
+   logic [7:0]			awlen;
+   logic [3:0]			awqos;
+   logic [NUM_USER_BITS_P-1:0]	awuser;
+
+   // Write data channel
+   logic			wvalid;
+   logic			wready;
+   logic			wlast;
+   logic [(DATA_BYTES_P*8)-1:0] wdata;
+   logic [DATA_BYTES_P-1:0]	wstrb;
+   logic [NUM_USER_BITS_P-1:0]	wuser;
+
+   // Write response channel
+   logic			bwvalid;
+   logic			bwready;
+   logic [1:0]			bresp;
+   logic [NUM_ID_BITS_P-1:0]	bid;
+   logic [NUM_USER_BITS_P-1:0]	buser;
+
+   // Read address channel
+   logic			arvalid;
+   logic			aready;
+   logic [(ADDR_BYTES_P*8)-1:0] araddr; // 32-bits by spec
+   logic [3:0]			arcache;
+   logic [2:0]			arprot;
+   logic			arlock;
+   logic [3:0]			arregion;
+   logic [2:0]			arsize;
+   logic [1:0]			arburst;
+   logic [NUM_ID_BITS_P-1:0]	arid;
+   logic [7:0]			arlen;
+   logic [3:0]			arqos;
+   logic [NUM_USER_BITS_P-1:0]	aruser;
+
+   // Read data channel
+   logic			rvalid;
+   logic			rready;
+   logic			rlast;
+   logic [(DATA_BYTES_P*8)-1:0] rdata;
+   logic [1:0]			rresp;
+   logic [NUM_ID_BITS_P-1:0]	rid;
+   logic [NUM_USER_BITS_P-1:0]	ruser;
+
+   axi4_if #(.DATA_BYTES(DATA_BYTES_P),
+	     .ADDR_BYTES(ADDR_BYTES_P),
+	     .NUM_ID_BITS_P(NUM_ID_BITS_P),
+	     .NUM_USER_BITS_P(NUM_USER_BITS_P)
+	     ) connector(.aclk(aclk), .aresetn(aresetn));
+
+   /**************************************************************************
+    * Assignments
+    **************************************************************************/
+   // Write address
+   assign awvalid        = connector.awvalid;
+   assign awready	 = connector.awready;
+   assign awaddr	 = connector.awaddr;
+   assign awsize	 = connector.awsize;
+   assign awcache	 = connector.awcache;
+   assign awprot	 = connector.awprot;
+   assign awlock	 = connector.awlock;
+   assign awregion       = connector.awregion;
+   assign awburst	 = connector.awburst;
+   assign awid		 = connector.awid;
+   assign awlen		 = connector.awlen;
+   assign awqos		 = connector.awqos;
+   assign awuser	 = connector.awuser;
+
+   // Write data
+   assign wvalid	 = connector.wvalid;
+   assign wready	 = connector.wready;
+   assign wlast		 = connector.wlast;
+   assign wdata		 = connector.wdata;
+   assign wstrb		 = connector.wstrb;
+   assign wuser		 = connector.wuser;
+
+   // Write response
+   assign bwvalid	 = connector.bwvalid;
+   assign bwready	 = connector.bwready;
+   assign bresp		 = connector.bresp;
+   assign bid		 = connector.bid;
+   assign buser		 = connector.buser;
+
+   // Read address
+   assign arvalid	 = connector.arvalid;
+   assign aready	 = connector.aready;
+   assign araddr	 = connector.araddr;
+   assign arcache	 = connector.arcache;
+   assign arprot	 = connector.arprot;
+   assign arlock	 = connector.arlock;
+   assign arregion       = connector.arregion;
+   assign arsize	 = connector.arsize;
+   assign arburst	 = connector.arburst;
+   assign arid           = connector.arid;
+   assign arlen          = connector.arlen;
+   assign arqos          = connector.arqos;
+   assign aruser         = connector.aruser;
+
+   // Read data
+   assign rvalid         = connector.rvalid;
+   assign rready         = connector.rready;
+   assign rlast		 = connector.rlast;
+   assign rdata		 = connector.rdata;
+   assign rresp		 = connector.rresp;
+   assign rid		 = connector.rid;
+   assign ruser		 = connector.ruser;
+
+
+   initial begin
+      forever begin
+	 #10 aclk = ~aclk;
+      end
+   end
+
+   initial begin
+      #1ms;
+
+      $display("============================");
+      $display("======= TEST TIMEOUT =======");
+      $display("============================");
+      $finish;
+   end
+
+   axi4_master_bfm dut_master(connector);
+   // axi4_slave_bfm  dut_slave(connector);
+
+endmodule // axi4_full_tb
