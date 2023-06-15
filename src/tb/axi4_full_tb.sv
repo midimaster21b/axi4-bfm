@@ -132,6 +132,8 @@ module axi4_full_tb;
    end
 
    initial begin
+      #1us;
+      dut_master.write_beat(.awaddr('1), .wdata('1));
       #1ms;
 
       $display("============================");
@@ -141,6 +143,6 @@ module axi4_full_tb;
    end
 
    axi4_master_bfm dut_master(connector);
-   // axi4_slave_bfm  dut_slave(connector);
+   axi4_slave_bfm  dut_slave(connector);
 
 endmodule // axi4_full_tb
