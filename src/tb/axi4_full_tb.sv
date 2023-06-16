@@ -131,8 +131,9 @@ module axi4_full_tb;
       end
    end
 
+   // Write process
    initial begin
-      #1us;
+      #400ns;
       dut_master.write_beat(.awaddr('1), .wdata('1));
       #1ms;
 
@@ -141,6 +142,23 @@ module axi4_full_tb;
       $display("============================");
       $finish;
    end
+
+   // Read process
+   initial begin
+      #400ns;
+      dut_master.read_beat(.araddr('1));
+      #1ms;
+
+      $display("============================");
+      $display("======= TEST TIMEOUT =======");
+      $display("============================");
+      $finish;
+   end
+
+
+
+
+
 
    axi4_master_bfm dut_master(connector);
    axi4_slave_bfm  dut_slave(connector);

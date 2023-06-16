@@ -154,9 +154,9 @@ module axi4_slave_bfm(conn);
     * Add a beat to the queue of AXI4 Write Response beats to be written.
     **************************************************************************/
    task put_b_beat;
-      logic [$bits(conn.bresp)-1:0]    bresp;
-      logic [$bits(conn.bid)-1:0]      bid;
-      logic [$bits(conn.buser)-1:0]    buser;
+      input logic [$bits(conn.bresp)-1:0]    bresp;
+      input logic [$bits(conn.bid)-1:0]      bid;
+      input logic [$bits(conn.buser)-1:0]    buser;
 
       // axi4_w_beat_t temp;
       logic [$bits(b_conn.data)-1:0]  temp;
@@ -166,10 +166,27 @@ module axi4_slave_bfm(conn);
 	 temp[bid_offset   +: $bits(conn.bid  ) ] = bid  ;
 	 temp[buser_offset +: $bits(conn.buser) ] = buser;
 
-	 // // Write the response data to the bus
-	 // write_data.put_simple_beat(temp);
+	 // Write the response data to the bus
+	 bresp.put_simple_beat(temp);
       end
    endtask // put_b_beat
+
+
+   /**************************************************************************
+    * Add a beat to the queue of AXI4 Write Response beats to be written.
+    **************************************************************************/
+   task put_simple_b_beat;
+      input logic [$bits(conn.bresp)-1:0] bresp;
+
+      begin
+	 // Write the response data to the bus
+	 put_b_beat(
+		    .bresp(bresp),
+		    .bid(0),
+		    .buser(0)
+		    );
+      end
+   endtask // put_simple_b_beat
 
 
 
@@ -180,13 +197,11 @@ module axi4_slave_bfm(conn);
     * Add a beat to the queue of AXI4 Read Data beats to be written.
     **************************************************************************/
    task put_r_beat;
-      logic			       rvalid;
-      logic			       rready;
-      logic			       rlast;
-      logic [$bits(conn.rdata)-1:0]    rdata;
-      logic [$bits(conn.rresp)-1:0]    rresp;
-      logic [$bits(conn.rid)-1:0]      rid;
-      logic [$bits(conn.ruser)-1:0]    ruser;
+      input logic                         rlast;
+      input logic [$bits(conn.rdata)-1:0] rdata;
+      input logic [$bits(conn.rresp)-1:0] rresp;
+      input logic [$bits(conn.rid)-1:0]   rid;
+      input logic [$bits(conn.ruser)-1:0] ruser;
 
       logic [$bits(r_conn.data)-1:0]   temp;
 
@@ -197,10 +212,52 @@ module axi4_slave_bfm(conn);
 	 temp[rid_offset   +: $bits(conn.rid  )] = rid;
 	 temp[ruser_offset +: $bits(conn.ruser)] = ruser;
 
-	 // // Write the data to the bus
-	 // read_address.put_simple_beat(temp);
+	 // Write the data to the bus
+	 read_data.put_simple_beat(temp);
       end
    endtask // put_r_beat
+
+
+   /**************************************************************************
+    * Add a beat to the queue of AXI4 Read Data beats to be written.
+    **************************************************************************/
+   task put_user_r_beat;
+      input logic                         rlast;
+      input logic [$bits(conn.rdata)-1:0] rdata;
+      input logic [$bits(conn.rresp)-1:0] rresp;
+      input logic [$bits(conn.ruser)-1:0] ruser;
+
+      begin
+	 // Write the data to the bus
+	 put_r_beat(
+		    .rlast(rlast),
+		    .rdata(rdata),
+		    .rresp(rresp),
+		    .rid(0),
+		    .ruser(ruser)
+		    );
+      end
+   endtask // put_user_r_beat
+
+
+   /**************************************************************************
+    * Add a simple beat to the queue of AXI4 Read Data beats to be written.
+    **************************************************************************/
+   task put_simple_r_beat;
+      input logic                         rlast;
+      input logic [$bits(conn.rdata)-1:0] rdata;
+
+      begin
+	 // Write the data to the bus
+	 put_r_beat(
+		    .rlast(rlast),
+		    .rdata(rdata),
+		    .rresp(0),
+		    .rid(0),
+		    .ruser(0)
+		    );
+      end
+   endtask // put_simple_r_beat
 
 
    ////////////////////////////////////////////////////////////////////////////
@@ -212,7 +269,7 @@ module axi4_slave_bfm(conn);
     * Write address channel
     ***************************************************************************/
    handshake_if #(.DATA_BITS($bits(axi4_aw_beat_t)-2)) aw_conn(.clk(conn.aclk), .rst(conn.aresetn));
-   handshake_slave write_addr(aw_conn);
+   handshake_slave #(.ALWAYS_READY(0)) write_addr(aw_conn);
 
    assign aw_conn.valid = conn.awvalid ;
    assign conn.awready  = aw_conn.ready;
@@ -233,7 +290,7 @@ module axi4_slave_bfm(conn);
     * Write data channel
     ***************************************************************************/
    handshake_if #(.DATA_BITS($bits(axi4_w_beat_t)-2)) w_conn(.clk(conn.aclk), .rst(conn.aresetn));
-   handshake_slave write_data(w_conn);
+   handshake_slave #(.ALWAYS_READY(0)) write_data(w_conn);
 
    assign w_conn.valid = conn.wvalid ;
    assign conn.wready  = w_conn.ready;
@@ -260,7 +317,7 @@ module axi4_slave_bfm(conn);
     * Read address channel
     ***************************************************************************/
    handshake_if #(.DATA_BITS($bits(axi4_ar_beat_t)-2)) ar_conn(.clk(conn.aclk), .rst(conn.aresetn));
-   handshake_slave read_address(ar_conn);
+   handshake_slave #(.ALWAYS_READY(0)) read_addr(ar_conn);
 
    assign ar_conn.valid = conn.arvalid ;
    assign conn.aready   = ar_conn.ready;
@@ -292,5 +349,49 @@ module axi4_slave_bfm(conn);
    assign conn.rresp = r_conn.data[rresp_offset +: $bits(conn.rresp)];
    assign conn.rid   = r_conn.data[rid_offset   +: $bits(conn.rid  )];
    assign conn.ruser = r_conn.data[ruser_offset +: $bits(conn.ruser)];
+
+
+
+   ////////////////////////////////////////////////////////////////////////////
+   // Write channel
+   ////////////////////////////////////////////////////////////////////////////
+   logic [$bits(w_conn)-1:0] tmp_w_beat;
+
+   initial
+   begin
+
+      forever begin
+	 write_data.get_beat(.data(tmp_w_beat));
+
+	 // If this is the last beat of data
+	 if(tmp_w_beat[wlast_offset] == '1) begin
+	    // Submit write reponse
+	    put_simple_b_beat(.bresp(0));
+	 end
+      end
+   end
+
+
+   ////////////////////////////////////////////////////////////////////////////
+   // Read channel
+   ////////////////////////////////////////////////////////////////////////////
+   logic [$bits(ar_conn)-1:0] tmp_ar_beat;
+
+   initial
+   begin
+
+      forever begin
+	 read_addr.get_beat(.data(tmp_ar_beat));
+
+	 // Submit read reponse
+	 put_simple_r_beat(
+			   .rlast('1),
+			   .rdata('1)
+			   );
+      end
+   end
+
+
+
 
 endmodule // axi4_slave_bfm

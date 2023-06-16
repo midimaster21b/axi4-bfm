@@ -287,8 +287,6 @@ module axi4_master_bfm(conn);
     * Add a beat to the queue of AXI4 Read Address beats to be written.
     **************************************************************************/
    task put_ar_beat;
-      input logic                            arvalid;
-      // input logic                         aready;
       input logic [$bits(conn.araddr)-1:0]   araddr;
       input logic [$bits(conn.arcache)-1:0]  arcache;
       input logic [$bits(conn.arprot)-1:0]   arprot;
@@ -323,6 +321,35 @@ module axi4_master_bfm(conn);
 
 
 
+   /**************************************************************************
+    * Add a simple beat to the queue of AXI4 Read Address beats to be written.
+    **************************************************************************/
+   task put_simple_ar_beat;
+      input logic [$bits(conn.araddr)-1:0]   araddr;
+      input logic [$bits(conn.arlen)-1:0]    arlen;
+
+      logic [$bits(ar_conn.data)-1:0]	     temp;
+
+      begin
+	 // Write the data to the bus
+	 put_ar_beat(
+		     .araddr(araddr),
+		     .arcache(0),
+		     .arprot(0),
+		     .arlock(0),
+		     .arregion(0),
+		     .arsize($bits(conn.rdata)/8),
+		     .arburst(0),
+		     .arid(0),
+		     .arlen(arlen),
+		     .arqos(0),
+		     .aruser(0)
+		     );
+      end
+   endtask // put_simple_ar_beat
+
+
+
    ////////////////////////////////////////////////////////////////////////////
    ////////////////////////////////////////////////////////////////////////////
    // Interface connections
@@ -338,13 +365,27 @@ module axi4_master_bfm(conn);
 	 put_simple_aw_beat(.awaddr(awaddr),
 			    .awlen(0));
 
-	 // // Write data beat
-	 // put_simple_w_beat(.wdata(wdata),
-	 //		   .wlast('1));
+	 // Write data beat
+	 put_simple_w_beat(.wdata(wdata),
+			   .wlast('1));
 
 	 // Wait for write response
       end
    endtask // write_beat
+
+
+   // Read a single beat using the AXI4 full bus
+   task read_beat;
+      input logic [$bits(conn.araddr)-1:0] araddr;
+
+      begin
+	 // Write address beat
+	 put_simple_ar_beat(.araddr(araddr),
+			    .arlen(0));
+
+	 // Wait for read response
+      end
+   endtask // read_beat
 
 
    ////////////////////////////////////////////////////////////////////////////
