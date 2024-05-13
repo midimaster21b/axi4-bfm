@@ -1,5 +1,5 @@
 // QUESTION: Does awid need to increment for every write operation? No, I don't think so.
-module axi4_slave_bfm(conn);
+module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    axi4_if conn;
 
    // Write address channel
@@ -269,7 +269,7 @@ module axi4_slave_bfm(conn);
     * Write address channel
     ***************************************************************************/
    handshake_if #(.DATA_BITS($bits(axi4_aw_beat_t)-2)) aw_conn(.clk(conn.aclk), .rst(conn.aresetn));
-   handshake_slave #(.ALWAYS_READY(0)) write_addr(aw_conn);
+   handshake_slave #(.ALWAYS_READY(0), .IFACE_NAME($sformatf("s_axi4_%s_aw", BFM_NAME))) write_addr(aw_conn);
 
    assign aw_conn.valid = conn.awvalid ;
    assign conn.awready  = aw_conn.ready;
@@ -290,7 +290,7 @@ module axi4_slave_bfm(conn);
     * Write data channel
     ***************************************************************************/
    handshake_if #(.DATA_BITS($bits(axi4_w_beat_t)-2)) w_conn(.clk(conn.aclk), .rst(conn.aresetn));
-   handshake_slave #(.ALWAYS_READY(0)) write_data(w_conn);
+   handshake_slave #(.ALWAYS_READY(0), .IFACE_NAME($sformatf("s_axi4_%s_w", BFM_NAME))) write_data(w_conn);
 
    assign w_conn.valid = conn.wvalid ;
    assign conn.wready  = w_conn.ready;
@@ -304,7 +304,7 @@ module axi4_slave_bfm(conn);
     * Write response channel
     ***************************************************************************/
    handshake_if #(.DATA_BITS($bits(axi4_b_beat_t)-2)) b_conn(.clk(conn.aclk), .rst(conn.aresetn));
-   handshake_master bresp(b_conn);
+   handshake_master #(.IFACE_NAME($sformatf("s_axi4_%s_b", BFM_NAME))) bresp(b_conn);
 
    assign conn.bwvalid = b_conn.valid;
    assign b_conn.ready = conn.bwready;
@@ -317,7 +317,7 @@ module axi4_slave_bfm(conn);
     * Read address channel
     ***************************************************************************/
    handshake_if #(.DATA_BITS($bits(axi4_ar_beat_t)-2)) ar_conn(.clk(conn.aclk), .rst(conn.aresetn));
-   handshake_slave #(.ALWAYS_READY(0)) read_addr(ar_conn);
+   handshake_slave #(.ALWAYS_READY(0), .IFACE_NAME($sformatf("s_axi4_%s_ar", BFM_NAME))) read_addr(ar_conn);
 
    assign ar_conn.valid = conn.arvalid ;
    assign conn.aready   = ar_conn.ready;
@@ -339,7 +339,7 @@ module axi4_slave_bfm(conn);
     * Read data channel
     ***************************************************************************/
    handshake_if #(.DATA_BITS($bits(axi4_r_beat_t)-2)) r_conn(.clk(conn.aclk), .rst(conn.aresetn));
-   handshake_master read_data(r_conn);
+   handshake_master #(.IFACE_NAME($sformatf("s_axi4_%s_r", BFM_NAME))) read_data(r_conn);
 
    assign conn.rvalid  = r_conn.valid;
    assign r_conn.ready = conn.rready ;

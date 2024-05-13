@@ -124,29 +124,33 @@ module axi4_full_tb;
    assign rid		 = connector.rid;
    assign ruser		 = connector.ruser;
 
-
-   initial begin
-      forever begin
-	 #10 aclk = ~aclk;
-      end
-   end
-
+   ////////////////////////////////////////////
+   // Master BFM
+   ////////////////////////////////////////////
    // Write process
    initial begin
-      #400ns;
+      #100ns;
       dut_master.write_beat(.awaddr('1), .wdata('1));
-      #1ms;
-
-      $display("============================");
-      $display("======= TEST TIMEOUT =======");
-      $display("============================");
-      $finish;
    end
 
    // Read process
    initial begin
-      #400ns;
+      #100ns;
       dut_master.read_beat(.araddr('1));
+   end
+
+
+   ////////////////////////////////////////////
+   // Testbench basics
+   ////////////////////////////////////////////
+   // Clock signal control
+   always #5 aclk = ~aclk;
+
+   // Deassert reset signal
+   initial #100 aresetn = 1'b1;
+
+   // Testbench timeout
+   initial begin
       #1ms;
 
       $display("============================");
@@ -156,11 +160,6 @@ module axi4_full_tb;
    end
 
 
-
-
-
-
-   axi4_master_bfm dut_master(connector);
-   axi4_slave_bfm  dut_slave(connector);
-
+   axi4_master_bfm #(.BFM_NAME("dut_mst")) dut_master(connector);
+   axi4_slave_bfm  #(.BFM_NAME("dut_slv")) dut_slave(connector);
 endmodule // axi4_full_tb
