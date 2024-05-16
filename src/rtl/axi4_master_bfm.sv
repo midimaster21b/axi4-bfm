@@ -2,76 +2,175 @@
 module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    axi4_if conn;
 
+   ////////////////////////////////////////////////////////////////////////////
+   // Bit widths
+   ////////////////////////////////////////////////////////////////////////////
+   // Write address channel
+   localparam num_awaddr_bits   = $bits(conn.awaddr); // 32-bits by spec
+   localparam num_awsize_bits   = $bits(conn.awsize);
+   localparam num_awcache_bits  = $bits(conn.awcache);
+   localparam num_awprot_bits   = $bits(conn.awprot);
+   localparam num_awlock_bits   = $bits(conn.awlock);
+   localparam num_awregion_bits = $bits(conn.awregion);
+   localparam num_awburst_bits  = $bits(conn.awburst);
+   localparam num_awid_bits     = $bits(conn.awid);
+   localparam num_awlen_bits    = $bits(conn.awlen);
+   localparam num_awqos_bits    = $bits(conn.awqos);
+   localparam num_awuser_bits   = $bits(conn.awuser);
+
+   // Write data channel
+   localparam num_wlast_bits    = $bits(conn.wlast);
+   localparam num_wdata_bits    = $bits(conn.wdata);
+   localparam num_wstrb_bits    = $bits(conn.wstrb);
+   localparam num_wuser_bits    = $bits(conn.wuser);
+
+   // Write response channel
+   localparam num_bresp_bits    = $bits(conn.bresp);
+   localparam num_bid_bits      = $bits(conn.bid);
+   localparam num_buser_bits    = $bits(conn.buser);
+
+   // Read address channel
+   localparam num_araddr_bits   = $bits(conn.araddr); // 32-bits by spec
+   localparam num_arcache_bits  = $bits(conn.arcache);
+   localparam num_arprot_bits   = $bits(conn.arprot);
+   localparam num_arlock_bits   = $bits(conn.arlock);
+   localparam num_arregion_bits = $bits(conn.arregion);
+   localparam num_arsize_bits   = $bits(conn.arsize);
+   localparam num_arburst_bits  = $bits(conn.arburst);
+   localparam num_arid_bits     = $bits(conn.arid);
+   localparam num_arlen_bits    = $bits(conn.arlen);
+   localparam num_arqos_bits    = $bits(conn.arqos);
+   localparam num_aruser_bits   = $bits(conn.aruser);
+
+   // Read data channel
+   localparam num_rlast_bits    = $bits(conn.rlast);
+   localparam num_rdata_bits    = $bits(conn.rdata);
+   localparam num_rresp_bits    = $bits(conn.rresp);
+   localparam num_rid_bits      = $bits(conn.rid);
+   localparam num_ruser_bits    = $bits(conn.ruser);
+
+
+   ////////////////////////////////////////////////////////////////////////////
+   // Offsets
+   ////////////////////////////////////////////////////////////////////////////
+   // Write address
+   localparam awaddr_offset   = 0;
+   localparam awsize_offset   = num_awaddr_bits   + awaddr_offset;
+   localparam awcache_offset  = num_awsize_bits   + awsize_offset;
+   localparam awprot_offset   = num_awcache_bits  + awcache_offset;
+   localparam awlock_offset   = num_awprot_bits   + awprot_offset;
+   localparam awregion_offset = num_awlock_bits   + awlock_offset;
+   localparam awburst_offset  = num_awregion_bits + awregion_offset;
+   localparam awid_offset     = num_awburst_bits  + awburst_offset;
+   localparam awlen_offset    = num_awid_bits     + awid_offset;
+   localparam awqos_offset    = num_awlen_bits    + awlen_offset;
+   localparam awuser_offset   = num_awqos_bits    + awqos_offset;
+
+   // Write data
+   localparam wlast_offset    = 0;
+   localparam wdata_offset    = num_wlast_bits + wlast_offset;
+   localparam wstrb_offset    = num_wdata_bits + wdata_offset;
+   localparam wuser_offset    = num_wstrb_bits + wstrb_offset;
+
+   // Write response
+   localparam bresp_offset    = 0;
+   localparam bid_offset      = num_bresp_bits + bresp_offset;
+   localparam buser_offset    = num_bid_bits   + bid_offset;
+
+   // Read address
+   localparam araddr_offset   = 0;
+   localparam arcache_offset  = num_araddr_bits   + araddr_offset;
+   localparam arprot_offset   = num_arcache_bits  + arcache_offset;
+   localparam arlock_offset   = num_arprot_bits   + arprot_offset;
+   localparam arregion_offset = num_arlock_bits   + arlock_offset;
+   localparam arsize_offset   = num_arregion_bits + arregion_offset;
+   localparam arburst_offset  = num_arsize_bits   + arsize_offset;
+   localparam arid_offset     = num_arburst_bits  + arburst_offset;
+   localparam arlen_offset    = num_arid_bits     + arid_offset;
+   localparam arqos_offset    = num_arlen_bits    + arlen_offset;
+   localparam aruser_offset   = num_arqos_bits    + arqos_offset;
+
+   // Read data
+   localparam rlast_offset    = 0;
+   localparam rdata_offset    = num_rlast_bits + rlast_offset;
+   localparam rresp_offset    = num_rdata_bits + rdata_offset;
+   localparam rid_offset      = num_rresp_bits + rresp_offset;
+   localparam ruser_offset    = num_rid_bits   + rid_offset;
+
+
+   ////////////////////////////////////////////////////////////////////////////
+   // Channel Structs
+   ////////////////////////////////////////////////////////////////////////////
    // Write address channel
    typedef struct {
-      logic                            awvalid;
-      logic			       awready;
-      logic [$bits(conn.awaddr)-1:0]   awaddr; // 32-bits by spec
-      logic [$bits(conn.awsize)-1:0]   awsize;
-      logic [$bits(conn.awcache)-1:0]  awcache;
-      logic [$bits(conn.awprot)-1:0]   awprot;
-      logic			       awlock;
-      logic [$bits(conn.awregion)-1:0] awregion;
-      logic [$bits(conn.awburst)-1:0]  awburst;
-      logic [$bits(conn.awid)-1:0]     awid;
-      logic [$bits(conn.awlen)-1:0]    awlen;
-      logic [$bits(conn.awqos)-1:0]    awqos;
-      logic [$bits(conn.awuser)-1:0]   awuser;
+      logic                         awvalid;
+      logic			    awready;
+      logic [num_awaddr_bits-1:0]   awaddr; // 32-bits by spec
+      logic [num_awsize_bits-1:0]   awsize;
+      logic [num_awcache_bits-1:0]  awcache;
+      logic [num_awprot_bits-1:0]   awprot;
+      logic			    awlock;
+      logic [num_awregion_bits-1:0] awregion;
+      logic [num_awburst_bits-1:0]  awburst;
+      logic [num_awid_bits-1:0]     awid;
+      logic [num_awlen_bits-1:0]    awlen;
+      logic [num_awqos_bits-1:0]    awqos;
+      logic [num_awuser_bits-1:0]   awuser;
    } axi4_aw_beat_t;
 
    // Write data channel
-   typedef struct		       {
-      logic			       wvalid;
-      logic			       wready;
-      logic			       wlast;
-      logic [$bits(conn.wdata)-1:0]    wdata;
-      logic [$bits(conn.wstrb)-1:0]    wstrb;
-      logic [$bits(conn.wuser)-1:0]    wuser;
+   typedef struct		    {
+      logic			    wvalid;
+      logic			    wready;
+      logic			    wlast;
+      logic [num_wdata_bits-1:0]    wdata;
+      logic [num_wstrb_bits-1:0]    wstrb;
+      logic [num_wuser_bits-1:0]    wuser;
    } axi4_w_beat_t;
 
    // Write response channel
    typedef struct		       {
-      logic			       bwvalid;
-      logic			       bwready;
-      logic [$bits(conn.bresp)-1:0]    bresp;
-      logic [$bits(conn.bid)-1:0]      bid;
-      logic [$bits(conn.buser)-1:0]    buser;
+      logic			    bvalid;
+      logic			    bready;
+      logic [num_bresp_bits-1:0]    bresp;
+      logic [num_bid_bits-1:0]      bid;
+      logic [num_buser_bits-1:0]    buser;
    } axi4_b_beat_t;
 
    // Read address channel
-   typedef struct		       {
-      logic			       arvalid;
-      logic			       aready;
-      logic [$bits(conn.araddr)-1:0]   araddr; // 32-bits by spec
-      logic [$bits(conn.arcache)-1:0]  arcache;
-      logic [$bits(conn.arprot)-1:0]   arprot;
-      logic			       arlock;
-      logic [$bits(conn.arregion)-1:0] arregion;
-      logic [$bits(conn.arsize)-1:0]   arsize;
-      logic [$bits(conn.arburst)-1:0]  arburst;
-      logic [$bits(conn.arid)-1:0]     arid;
-      logic [$bits(conn.arlen)-1:0]    arlen;
-      logic [$bits(conn.arqos)-1:0]    arqos;
-      logic [$bits(conn.aruser)-1:0]   aruser;
+   typedef struct		    {
+      logic			    arvalid;
+      logic			    arready;
+      logic [num_araddr_bits-1:0]   araddr; // 32-bits by spec
+      logic [num_arcache_bits-1:0]  arcache;
+      logic [num_arprot_bits-1:0]   arprot;
+      logic			    arlock;
+      logic [num_arregion_bits-1:0] arregion;
+      logic [num_arsize_bits-1:0]   arsize;
+      logic [num_arburst_bits-1:0]  arburst;
+      logic [num_arid_bits-1:0]     arid;
+      logic [num_arlen_bits-1:0]    arlen;
+      logic [num_arqos_bits-1:0]    arqos;
+      logic [num_aruser_bits-1:0]   aruser;
    } axi4_ar_beat_t;
 
    // Read data channel
-   typedef struct		       {
-      logic			       rvalid;
-      logic			       rready;
-      logic			       rlast;
-      logic [$bits(conn.rdata)-1:0]    rdata;
-      logic [$bits(conn.rresp)-1:0]    rresp;
-      logic [$bits(conn.rid)-1:0]      rid;
-      logic [$bits(conn.ruser)-1:0]    ruser;
+   typedef struct		    {
+      logic			    rvalid;
+      logic			    rready;
+      logic			    rlast;
+      logic [num_rdata_bits-1:0]    rdata;
+      logic [num_rresp_bits-1:0]    rresp;
+      logic [num_rid_bits-1:0]      rid;
+      logic [num_ruser_bits-1:0]    ruser;
    } axi4_r_beat_t;
 
    // Define the mailbox types for each channel
-   typedef mailbox		       #(axi4_aw_beat_t) axi4_aw_inbox_t;
-   typedef mailbox		       #(axi4_w_beat_t)  axi4_w_inbox_t;
-   typedef mailbox		       #(axi4_b_beat_t)  axi4_b_inbox_t;
-   typedef mailbox		       #(axi4_ar_beat_t) axi4_ar_inbox_t;
-   typedef mailbox		       #(axi4_r_beat_t)  axi4_r_inbox_t;
+   typedef mailbox		    #(axi4_aw_beat_t) axi4_aw_inbox_t;
+   typedef mailbox		    #(axi4_w_beat_t)  axi4_w_inbox_t;
+   typedef mailbox		    #(axi4_b_beat_t)  axi4_b_inbox_t;
+   typedef mailbox		    #(axi4_ar_beat_t) axi4_ar_inbox_t;
+   typedef mailbox		    #(axi4_r_beat_t)  axi4_r_inbox_t;
 
    // Create mailboxes for tx/rx beats
    axi4_aw_inbox_t axi4_aw_inbox  = new();
@@ -102,51 +201,6 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    axi4_r_beat_t  temp_r_beat;
 
 
-   // Write address
-   localparam awaddr_offset   = 0;
-   localparam awsize_offset   = $bits(conn.awaddr)   + awaddr_offset;
-   localparam awcache_offset  = $bits(conn.awsize)   + awsize_offset;
-   localparam awprot_offset   = $bits(conn.awcache)  + awcache_offset;
-   localparam awlock_offset   = $bits(conn.awprot)   + awprot_offset;
-   localparam awregion_offset = $bits(conn.awlock)   + awlock_offset;
-   localparam awburst_offset  = $bits(conn.awregion) + awregion_offset;
-   localparam awid_offset     = $bits(conn.awburst)  + awburst_offset;
-   localparam awlen_offset    = $bits(conn.awid)     + awid_offset;
-   localparam awqos_offset    = $bits(conn.awlen)    + awlen_offset;
-   localparam awuser_offset   = $bits(conn.awqos)    + awqos_offset;
-
-   // Write data
-   localparam wlast_offset    = 0;
-   localparam wdata_offset    = $bits(conn.wlast) + wlast_offset;
-   localparam wstrb_offset    = $bits(conn.wdata) + wdata_offset;
-   localparam wuser_offset    = $bits(conn.wstrb) + wstrb_offset;
-
-   // Write response
-   localparam bresp_offset    = 0;
-   localparam bid_offset      = $bits(conn.bresp) + bresp_offset;
-   localparam buser_offset    = $bits(conn.bid)   + bid_offset;
-
-   // Read address
-   localparam araddr_offset   = 0;
-   localparam arcache_offset  = $bits(conn.araddr)   + araddr_offset;
-   localparam arprot_offset   = $bits(conn.arcache)  + arcache_offset;
-   localparam arlock_offset   = $bits(conn.arprot)   + arprot_offset;
-   localparam arregion_offset = $bits(conn.arlock)   + arlock_offset;
-   localparam arsize_offset   = $bits(conn.arregion) + arregion_offset;
-   localparam arburst_offset  = $bits(conn.arsize)   + arsize_offset;
-   localparam arid_offset     = $bits(conn.arburst)  + arburst_offset;
-   localparam arlen_offset    = $bits(conn.arid)     + arid_offset;
-   localparam arqos_offset    = $bits(conn.arlen)    + arlen_offset;
-   localparam aruser_offset   = $bits(conn.arqos)    + arqos_offset;
-
-   // Read data
-   localparam rlast_offset    = 0;
-   localparam rdata_offset    = $bits(conn.rlast) + rlast_offset;
-   localparam rresp_offset    = $bits(conn.rdata) + rdata_offset;
-   localparam rid_offset      = $bits(conn.rresp) + rresp_offset;
-   localparam ruser_offset    = $bits(conn.rid)   + rid_offset;
-
-
    ////////////////////////////////////////////////////////////////////////////
    // Write Address Functions
    ////////////////////////////////////////////////////////////////////////////
@@ -156,33 +210,32 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    task put_aw_beat;
       input logic                            awvalid;
       // input logic			     awready;
-      input logic [$bits(conn.awaddr)-1:0]   awaddr; // 32-bits by spec
-      // input logic [31:0]		     awaddr; // 32-bits by spec
-      input logic [$bits(conn.awsize)-1:0]   awsize;
-      input logic [$bits(conn.awcache)-1:0]  awcache;
-      input logic [$bits(conn.awprot)-1:0]   awprot;
+      input logic [num_awaddr_bits-1:0]      awaddr; // 32-bits by spec
+      input logic [num_awsize_bits-1:0]      awsize;
+      input logic [num_awcache_bits-1:0]     awcache;
+      input logic [num_awprot_bits-1:0]      awprot;
       input logic			     awlock;
-      input logic [$bits(conn.awregion)-1:0] awregion;
-      input logic [$bits(conn.awburst)-1:0]  awburst;
-      input logic [$bits(conn.awid)-1:0]     awid;
-      input logic [$bits(conn.awlen)-1:0]    awlen;
-      input logic [$bits(conn.awqos)-1:0]    awqos;
-      input logic [$bits(conn.awuser)-1:0]   awuser;
+      input logic [num_awregion_bits-1:0]    awregion;
+      input logic [num_awburst_bits-1:0]     awburst;
+      input logic [num_awid_bits-1:0]	     awid;
+      input logic [num_awlen_bits-1:0]	     awlen;
+      input logic [num_awqos_bits-1:0]	     awqos;
+      input logic [num_awuser_bits-1:0]      awuser;
 
-      logic [$bits(aw_conn.data)-1:0]  temp_aw;
+      logic [$bits(aw_conn.data)-1:0]	     temp_aw;
 
       begin
-	 temp_aw[awaddr_offset   +: $bits(conn.awaddr)  ] = awaddr  ;
-	 temp_aw[awsize_offset   +: $bits(conn.awsize)  ] = awsize  ;
-	 temp_aw[awcache_offset  +: $bits(conn.awcache) ] = awcache ;
-	 temp_aw[awprot_offset   +: $bits(conn.awprot)  ] = awprot  ;
-	 temp_aw[awlock_offset   +: $bits(conn.awlock)  ] = awlock  ;
-	 temp_aw[awregion_offset +: $bits(conn.awregion)] = awregion;
-	 temp_aw[awburst_offset  +: $bits(conn.awburst) ] = awburst ;
-	 temp_aw[awid_offset     +: $bits(conn.awid)    ] = awid    ;
-	 temp_aw[awlen_offset    +: $bits(conn.awlen)   ] = awlen   ;
-	 temp_aw[awqos_offset    +: $bits(conn.awqos)   ] = awqos   ;
-	 temp_aw[awuser_offset   +: $bits(conn.awuser)  ] = awuser  ;
+	 temp_aw[awaddr_offset   +: num_awaddr_bits  ] = awaddr  ;
+	 temp_aw[awsize_offset   +: num_awsize_bits  ] = awsize  ;
+	 temp_aw[awcache_offset  +: num_awcache_bits ] = awcache ;
+	 temp_aw[awprot_offset   +: num_awprot_bits  ] = awprot  ;
+	 temp_aw[awlock_offset   +: num_awlock_bits  ] = awlock  ;
+	 temp_aw[awregion_offset +: num_awregion_bits] = awregion;
+	 temp_aw[awburst_offset  +: num_awburst_bits ] = awburst ;
+	 temp_aw[awid_offset     +: num_awid_bits    ] = awid    ;
+	 temp_aw[awlen_offset    +: num_awlen_bits   ] = awlen   ;
+	 temp_aw[awqos_offset    +: num_awqos_bits   ] = awqos   ;
+	 temp_aw[awuser_offset   +: num_awuser_bits  ] = awuser  ;
 
 	 // Write the data to the bus
 	 write_addr.put_simple_beat(temp_aw);
@@ -195,13 +248,13 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
     * to be written.
     **************************************************************************/
    task put_simple_aw_beat;
-      input logic [$bits(conn.awaddr)-1:0]   awaddr; // 32-bits by spec
-      input logic [$bits(conn.awlen)-1:0]    awlen;
+      input logic [num_awaddr_bits-1:0]   awaddr; // 32-bits by spec
+      input logic [num_awlen_bits-1:0]	  awlen;
 
       begin
 	 put_aw_beat(.awvalid('1),
 		     .awaddr(awaddr),
-		     .awsize($bits(conn.wdata)/8),
+		     .awsize(num_wdata_bits/8),
 		     .awcache('0),
 		     .awprot('0),
 		     .awlock('0),
@@ -226,18 +279,18 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
       input logic			       wvalid;
       // input logic			       wready;
       input logic			       wlast;
-      input logic [$bits(conn.wdata)-1:0]      wdata;
-      input logic [$bits(conn.wstrb)-1:0]      wstrb;
-      input logic [$bits(conn.wuser)-1:0]      wuser;
+      input logic [num_wdata_bits-1:0]      wdata;
+      input logic [num_wstrb_bits-1:0]      wstrb;
+      input logic [num_wuser_bits-1:0]      wuser;
 
       // axi4_w_beat_t temp;
       logic [$bits(w_conn.data)-1:0]  temp;
 
       begin
-	 temp[wlast_offset +: $bits(conn.wlast)] = wlast;
-	 temp[wdata_offset +: $bits(conn.wdata)] = wdata;
-	 temp[wstrb_offset +: $bits(conn.wstrb)] = wstrb;
-	 temp[wuser_offset +: $bits(conn.wuser)] = wuser;
+	 temp[wlast_offset +: num_wlast_bits] = wlast;
+	 temp[wdata_offset +: num_wdata_bits] = wdata;
+	 temp[wstrb_offset +: num_wstrb_bits] = wstrb;
+	 temp[wuser_offset +: num_wuser_bits] = wuser;
 
 	 // Write the data to the bus
 	 write_data.put_simple_beat(temp);
@@ -250,9 +303,9 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
     * write data beats to be written.
     **************************************************************************/
    task put_user_w_beat;
-      input logic [$bits(conn.wdata)-1:0] wdata;
-      input logic			  wlast;
-      input logic [$bits(conn.wuser)-1:0] wuser;
+      input logic [num_wdata_bits-1:0] wdata;
+      input logic		       wlast;
+      input logic [num_wuser_bits-1:0] wuser;
 
       begin
 	 put_w_beat(.wvalid('1),
@@ -269,8 +322,8 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
     * written. A simple beat only requires data and last to be specified.
     **************************************************************************/
    task put_simple_w_beat;
-      input logic [$bits(conn.wdata)-1:0] wdata;
-      input logic			  wlast;
+      input logic [num_wdata_bits-1:0] wdata;
+      input logic                      wlast;
 
       begin
 	 put_user_w_beat(.wdata(wdata),
@@ -287,32 +340,32 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
     * Add a beat to the queue of AXI4 Read Address beats to be written.
     **************************************************************************/
    task put_ar_beat;
-      input logic [$bits(conn.araddr)-1:0]   araddr;
-      input logic [$bits(conn.arcache)-1:0]  arcache;
-      input logic [$bits(conn.arprot)-1:0]   arprot;
-      input logic			     arlock;
-      input logic [$bits(conn.arregion)-1:0] arregion;
-      input logic [$bits(conn.arsize)-1:0]   arsize;
-      input logic [$bits(conn.arburst)-1:0]  arburst;
-      input logic [$bits(conn.arid)-1:0]     arid;
-      input logic [$bits(conn.arlen)-1:0]    arlen;
-      input logic [$bits(conn.arqos)-1:0]    arqos;
-      input logic [$bits(conn.aruser)-1:0]   aruser;
+      input logic [num_araddr_bits-1:0]   araddr;
+      input logic [num_arcache_bits-1:0]  arcache;
+      input logic [num_arprot_bits-1:0]   arprot;
+      input logic			  arlock;
+      input logic [num_arregion_bits-1:0] arregion;
+      input logic [num_arsize_bits-1:0]   arsize;
+      input logic [num_arburst_bits-1:0]  arburst;
+      input logic [num_arid_bits-1:0]     arid;
+      input logic [num_arlen_bits-1:0]    arlen;
+      input logic [num_arqos_bits-1:0]    arqos;
+      input logic [num_aruser_bits-1:0]   aruser;
 
-      logic [$bits(ar_conn.data)-1:0]	     temp;
+      logic [$bits(ar_conn.data)-1:0]	  temp;
 
       begin
-	 temp[araddr_offset   +: $bits(conn.araddr  )] = araddr  ;
-	 temp[arcache_offset  +: $bits(conn.arcache )] = arcache ;
-	 temp[arprot_offset   +: $bits(conn.arprot  )] = arprot  ;
-	 temp[arlock_offset   +: $bits(conn.arlock  )] = arlock  ;
-	 temp[arregion_offset +: $bits(conn.arregion)] = arregion;
-	 temp[arsize_offset   +: $bits(conn.arsize  )] = arsize  ;
-	 temp[arburst_offset  +: $bits(conn.arburst )] = arburst ;
-	 temp[arid_offset     +: $bits(conn.arid    )] = arid    ;
-	 temp[arlen_offset    +: $bits(conn.arlen   )] = arlen   ;
-	 temp[arqos_offset    +: $bits(conn.arqos   )] = arqos   ;
-	 temp[aruser_offset   +: $bits(conn.aruser  )] = aruser  ;
+	 temp[araddr_offset   +: num_araddr_bits]   = araddr  ;
+	 temp[arcache_offset  +: num_arcache_bits]  = arcache ;
+	 temp[arprot_offset   +: num_arprot_bits]   = arprot  ;
+	 temp[arlock_offset   +: num_arlock_bits]   = arlock  ;
+	 temp[arregion_offset +: num_arregion_bits] = arregion;
+	 temp[arsize_offset   +: num_arsize_bits]   = arsize  ;
+	 temp[arburst_offset  +: num_arburst_bits]  = arburst ;
+	 temp[arid_offset     +: num_arid_bits]     = arid    ;
+	 temp[arlen_offset    +: num_arlen_bits]    = arlen   ;
+	 temp[arqos_offset    +: num_arqos_bits]    = arqos   ;
+	 temp[aruser_offset   +: num_aruser_bits]   = aruser  ;
 
 	 // Write the data to the bus
 	 read_address.put_simple_beat(temp);
@@ -325,10 +378,10 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
     * Add a simple beat to the queue of AXI4 Read Address beats to be written.
     **************************************************************************/
    task put_simple_ar_beat;
-      input logic [$bits(conn.araddr)-1:0]   araddr;
-      input logic [$bits(conn.arlen)-1:0]    arlen;
+      input logic [num_araddr_bits-1:0]   araddr;
+      input logic [num_arlen_bits-1:0]    arlen;
 
-      logic [$bits(ar_conn.data)-1:0]	     temp;
+      logic [$bits(ar_conn.data)-1:0]	  temp;
 
       begin
 	 // Write the data to the bus
@@ -355,8 +408,8 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    ////////////////////////////////////////////////////////////////////////////
    // Write a single beat to the AXI4 full bus
    task write_beat;
-      input logic [$bits(conn.awaddr)-1:0] awaddr;
-      input logic [$bits(conn.wdata)-1:0] wdata;
+      input logic [num_awaddr_bits-1:0] awaddr;
+      input logic [num_wdata_bits-1:0] wdata;
 
       begin
 	 // Write address beat
@@ -374,7 +427,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
 
    // Read a single beat using the AXI4 full bus
    task read_beat;
-      input logic [$bits(conn.araddr)-1:0] araddr;
+      input logic [num_araddr_bits-1:0] araddr;
 
       begin
 	 // Write address beat
@@ -398,17 +451,17 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    assign conn.awvalid     = aw_conn.valid;
    assign aw_conn.ready    = conn.awready;
 
-   assign conn.awaddr   = aw_conn.data[awaddr_offset   +: $bits(conn.awaddr)  ];
-   assign conn.awsize   = aw_conn.data[awsize_offset   +: $bits(conn.awsize)  ];
-   assign conn.awcache  = aw_conn.data[awcache_offset  +: $bits(conn.awcache) ];
-   assign conn.awprot   = aw_conn.data[awprot_offset   +: $bits(conn.awprot)  ];
-   assign conn.awlock   = aw_conn.data[awlock_offset                          ];
-   assign conn.awregion = aw_conn.data[awregion_offset +: $bits(conn.awregion)];
-   assign conn.awburst  = aw_conn.data[awburst_offset  +: $bits(conn.awburst) ];
-   assign conn.awid     = aw_conn.data[awid_offset     +: $bits(conn.awid)    ];
-   assign conn.awlen    = aw_conn.data[awlen_offset    +: $bits(conn.awlen)   ];
-   assign conn.awqos    = aw_conn.data[awqos_offset    +: $bits(conn.awqos)   ];
-   assign conn.awuser   = aw_conn.data[awuser_offset   +: $bits(conn.awuser)  ];
+   assign conn.awaddr   = aw_conn.data[awaddr_offset   +: num_awaddr_bits  ];
+   assign conn.awsize   = aw_conn.data[awsize_offset   +: num_awsize_bits  ];
+   assign conn.awcache  = aw_conn.data[awcache_offset  +: num_awcache_bits ];
+   assign conn.awprot   = aw_conn.data[awprot_offset   +: num_awprot_bits  ];
+   assign conn.awlock   = aw_conn.data[awlock_offset                       ];
+   assign conn.awregion = aw_conn.data[awregion_offset +: num_awregion_bits];
+   assign conn.awburst  = aw_conn.data[awburst_offset  +: num_awburst_bits ];
+   assign conn.awid     = aw_conn.data[awid_offset     +: num_awid_bits    ];
+   assign conn.awlen    = aw_conn.data[awlen_offset    +: num_awlen_bits   ];
+   assign conn.awqos    = aw_conn.data[awqos_offset    +: num_awqos_bits   ];
+   assign conn.awuser   = aw_conn.data[awuser_offset   +: num_awuser_bits  ];
 
    /***************************************************************************
     * Write data channel
@@ -419,10 +472,10 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    assign conn.wvalid   = w_conn.valid;
    assign w_conn.ready  = conn.wready;
 
-   assign conn.wlast  = w_conn.data[wlast_offset                     ];
-   assign conn.wdata  = w_conn.data[wdata_offset +: $bits(conn.wdata)];
-   assign conn.wstrb  = w_conn.data[wstrb_offset +: $bits(conn.wstrb)];
-   assign conn.wuser  = w_conn.data[wuser_offset +: $bits(conn.wuser)];
+   assign conn.wlast  = w_conn.data[wlast_offset                  ];
+   assign conn.wdata  = w_conn.data[wdata_offset +: num_wdata_bits];
+   assign conn.wstrb  = w_conn.data[wstrb_offset +: num_wstrb_bits];
+   assign conn.wuser  = w_conn.data[wuser_offset +: num_wuser_bits];
 
    /***************************************************************************
     * Write response channel
@@ -430,12 +483,12 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    handshake_if #(.DATA_BITS($bits(axi4_b_beat_t)-2)) b_conn(.clk(conn.aclk), .rst(conn.aresetn));
    handshake_slave #(.IFACE_NAME($sformatf("s_axi4_%s_b", BFM_NAME))) bresp(b_conn);
 
-   assign b_conn.valid = conn.bwvalid;
-   assign conn.bwready = b_conn.ready;
+   assign b_conn.valid = conn.bvalid;
+   assign conn.bready = b_conn.ready;
 
-   assign b_conn.data[bresp_offset +: $bits(conn.bresp) ] = conn.bresp;
-   assign b_conn.data[bid_offset   +: $bits(conn.bid)   ] = conn.bid;
-   assign b_conn.data[buser_offset +: $bits(conn.buser) ] = conn.buser;
+   assign b_conn.data[bresp_offset +: num_bresp_bits] = conn.bresp;
+   assign b_conn.data[bid_offset   +: num_bid_bits] = conn.bid;
+   assign b_conn.data[buser_offset +: num_buser_bits] = conn.buser;
 
    /***************************************************************************
     * Read address channel
@@ -444,19 +497,19 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    handshake_master #(.IFACE_NAME($sformatf("m_axi4_%s_ar", BFM_NAME))) read_address(ar_conn);
 
    assign conn.arvalid   = ar_conn.valid;
-   assign ar_conn.ready  = conn.aready;
+   assign ar_conn.ready  = conn.arready;
 
-   assign conn.araddr    = ar_conn.data[araddr_offset   +: $bits(conn.araddr  )];
-   assign conn.arcache   = ar_conn.data[arcache_offset  +: $bits(conn.arcache )];
-   assign conn.arprot    = ar_conn.data[arprot_offset   +: $bits(conn.arprot  )];
-   assign conn.arlock    = ar_conn.data[arlock_offset   +: $bits(conn.arlock  )];
-   assign conn.arregion  = ar_conn.data[arregion_offset +: $bits(conn.arregion)];
-   assign conn.arsize    = ar_conn.data[arsize_offset   +: $bits(conn.arsize  )];
-   assign conn.arburst   = ar_conn.data[arburst_offset  +: $bits(conn.arburst )];
-   assign conn.arid      = ar_conn.data[arid_offset     +: $bits(conn.arid    )];
-   assign conn.arlen     = ar_conn.data[arlen_offset    +: $bits(conn.arlen   )];
-   assign conn.arqos     = ar_conn.data[arqos_offset    +: $bits(conn.arqos   )];
-   assign conn.aruser    = ar_conn.data[aruser_offset   +: $bits(conn.aruser  )];
+   assign conn.araddr    = ar_conn.data[araddr_offset   +: num_araddr_bits];
+   assign conn.arcache   = ar_conn.data[arcache_offset  +: num_arcache_bits];
+   assign conn.arprot    = ar_conn.data[arprot_offset   +: num_arprot_bits];
+   assign conn.arlock    = ar_conn.data[arlock_offset   +: num_arlock_bits];
+   assign conn.arregion  = ar_conn.data[arregion_offset +: num_arregion_bits];
+   assign conn.arsize    = ar_conn.data[arsize_offset   +: num_arsize_bits];
+   assign conn.arburst   = ar_conn.data[arburst_offset  +: num_arburst_bits];
+   assign conn.arid      = ar_conn.data[arid_offset     +: num_arid_bits];
+   assign conn.arlen     = ar_conn.data[arlen_offset    +: num_arlen_bits];
+   assign conn.arqos     = ar_conn.data[arqos_offset    +: num_arqos_bits];
+   assign conn.aruser    = ar_conn.data[aruser_offset   +: num_aruser_bits];
 
 
    /***************************************************************************
@@ -468,10 +521,10 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    assign r_conn.valid = conn.rvalid;
    assign conn.rready  = r_conn.ready;
 
-   assign r_conn.data[rlast_offset +: $bits(conn.rlast)]  = conn.rlast;
-   assign r_conn.data[rdata_offset +: $bits(conn.rdata)]  = conn.rdata;
-   assign r_conn.data[rresp_offset +: $bits(conn.rresp)]  = conn.rresp;
-   assign r_conn.data[rid_offset   +: $bits(conn.rid  )]  = conn.rid;
-   assign r_conn.data[ruser_offset +: $bits(conn.ruser)]  = conn.ruser;
+   assign r_conn.data[rlast_offset +: num_rlast_bits]  = conn.rlast;
+   assign r_conn.data[rdata_offset +: num_rdata_bits]  = conn.rdata;
+   assign r_conn.data[rresp_offset +: num_rresp_bits]  = conn.rresp;
+   assign r_conn.data[rid_offset   +: num_rid_bits]    = conn.rid;
+   assign r_conn.data[ruser_offset +: num_ruser_bits]  = conn.ruser;
 
 endmodule // axi4_master_bfm

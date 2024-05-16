@@ -31,15 +31,15 @@ module axi4_full_tb;
    logic [NUM_USER_BITS_P-1:0]	wuser;
 
    // Write response channel
-   logic			bwvalid;
-   logic			bwready;
+   logic			bvalid;
+   logic			bready;
    logic [1:0]			bresp;
    logic [NUM_ID_BITS_P-1:0]	bid;
    logic [NUM_USER_BITS_P-1:0]	buser;
 
    // Read address channel
    logic			arvalid;
-   logic			aready;
+   logic			arready;
    logic [(ADDR_BYTES_P*8)-1:0] araddr; // 32-bits by spec
    logic [3:0]			arcache;
    logic [2:0]			arprot;
@@ -94,15 +94,15 @@ module axi4_full_tb;
    assign wuser		 = connector.wuser;
 
    // Write response
-   assign bwvalid	 = connector.bwvalid;
-   assign bwready	 = connector.bwready;
+   assign bvalid	 = connector.bvalid;
+   assign bready	 = connector.bready;
    assign bresp		 = connector.bresp;
    assign bid		 = connector.bid;
    assign buser		 = connector.buser;
 
    // Read address
    assign arvalid	 = connector.arvalid;
-   assign aready	 = connector.aready;
+   assign arready	 = connector.arready;
    assign araddr	 = connector.araddr;
    assign arcache	 = connector.arcache;
    assign arprot	 = connector.arprot;
