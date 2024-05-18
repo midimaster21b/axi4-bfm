@@ -501,6 +501,38 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    endtask // put_burst_ar_beat
 
 
+   /**************************************************************************
+    * Perform a burst read
+    *
+    * TODO: Add read data return value
+    **************************************************************************/
+   task read_burst;
+      input logic [num_araddr_bits-1:0]   araddr;  // 32-bits by spec
+      input logic [num_arlen_bits-1:0]	  arlen;   // number of burst beats - 1
+      input logic [num_arburst_bits-1:0]  arburst; // type of burst [see interface definition]
+
+      input logic [num_arid_bits-1:0]	  arid   = '0;
+      input logic [num_aruser_bits-1:0]   aruser = '0;
+
+      // output logic [num_rdata_bits-1:0]   tmp_rdata[];
+
+      begin
+	 // tmp_rdata = new[arlen];
+
+	 // Put the address read burst beat
+	 put_burst_ar_beat(.araddr(araddr),
+			   .arlen(arlen),
+			   .arburst(arburst),
+			   .arid(arid),
+			   .aruser(aruser));
+
+	 // for(int x=0; x<arlen; x++) begin
+	 //    tmp_rdata[x] =
+	 // end
+      end
+   endtask // read_burst
+
+
    ////////////////////////////////////////////////////////////////////////////
    // Interface connections
    ////////////////////////////////////////////////////////////////////////////

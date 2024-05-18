@@ -244,15 +244,25 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    endtask // put_simple_b_beat
 
 
-
    ////////////////////////////////////////////////////////////////////////////
    // Read Data Functions
    ////////////////////////////////////////////////////////////////////////////
    /**************************************************************************
+    * Get the number of beats associated with a burst read
+    **************************************************************************/
+   function int num_ar_burst_beats;
+      input logic [ar_conn.DATA_BITS-1:0] handshake_tmp_data;
+      begin
+	 num_ar_burst_beats = handshake_tmp_data[arlen_offset+num_arlen_bits-1:arlen_offset];
+      end
+   endfunction // num_ar_burst_beats
+
+
+   /**************************************************************************
     * Add a beat to the queue of AXI4 Read Data beats to be written.
     **************************************************************************/
    task put_r_beat;
-      input logic                         rlast;
+      input logic                      rlast;
       input logic [num_rdata_bits-1:0] rdata;
       input logic [num_rresp_bits-1:0] rresp;
       input logic [num_rid_bits-1:0]   rid;
@@ -429,23 +439,30 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    ////////////////////////////////////////////////////////////////////////////
    // Read channel
    ////////////////////////////////////////////////////////////////////////////
-   logic [$bits(ar_conn)-1:0] tmp_ar_beat;
+   // logic [$bits(ar_conn)-1:0] tmp_ar_beat;
+
+   logic [ar_conn.DATA_BITS-1:0] tmp_ar_beat;
+   int			      num_burst_beats = 0;
+   logic		      tmp_rlast = 0;
 
    initial
    begin
-
       forever begin
 	 read_addr.get_beat(.data(tmp_ar_beat));
+	 num_burst_beats = num_ar_burst_beats(tmp_ar_beat);
 
-	 // Submit read reponse
-	 put_simple_r_beat(
-			   .rlast('1),
-			   .rdata('1)
-			   );
+	 for(int x=0; x<num_burst_beats+1; x++) begin
+	    if(x == num_burst_beats) begin
+	       tmp_rlast = 1;
+	    end
+
+	    // Submit read reponse
+	    put_simple_r_beat(.rlast(tmp_rlast),
+			      .rdata(x));
+	 end
+
+	 tmp_rlast = 0;
       end
    end
-
-
-
 
 endmodule // axi4_slave_bfm

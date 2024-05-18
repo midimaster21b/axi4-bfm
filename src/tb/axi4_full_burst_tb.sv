@@ -152,7 +152,11 @@ module axi4_full_burst_tb;
       wait(aresetn == '1);
       @(posedge aclk);
 
-      dut_master.read_beat(.araddr('1));
+      dut_master.read_burst(.araddr('0),
+			    .arlen(7),
+			    .arburst(0),
+			    .arid(0),
+			    .aruser(0));
    end
 
 
