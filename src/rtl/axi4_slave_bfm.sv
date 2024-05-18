@@ -345,7 +345,7 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
     * Write data channel
     ***************************************************************************/
    handshake_if #(.DATA_BITS($bits(axi4_w_beat_t)-2)) w_conn(.clk(conn.aclk), .rst(conn.aresetn));
-   handshake_slave #(.ALWAYS_READY(0), .IFACE_NAME($sformatf("s_axi4_%s_w", BFM_NAME))) write_data(w_conn);
+   handshake_slave #(.ALWAYS_READY(1), .IFACE_NAME($sformatf("s_axi4_%s_w", BFM_NAME))) write_data(w_conn);
 
    assign w_conn.valid = conn.wvalid ;
    assign conn.wready  = w_conn.ready;
@@ -414,7 +414,6 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
 
    initial
    begin
-
       forever begin
 	 write_data.get_beat(.data(tmp_w_beat));
 
