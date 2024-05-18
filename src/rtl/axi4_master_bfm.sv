@@ -244,6 +244,35 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
 
 
    /**************************************************************************
+    * Write a burst mode beat.
+    **************************************************************************/
+   task put_burst_aw_beat;
+      input logic [num_awaddr_bits-1:0]   awaddr;  // 32-bits by spec
+      input logic [num_awlen_bits-1:0]	  awlen;   // number of burst beats - 1
+      input logic [num_awburst_bits-1:0]  awburst; // type of burst [see interface definition]
+
+      input logic [num_awid_bits-1:0]	  awid   = '0;
+      input logic [num_awuser_bits-1:0]   awuser = '0;
+
+
+      begin
+	 put_aw_beat(.awvalid('1),
+		     .awaddr(awaddr),
+		     .awsize(num_wdata_bits/8),
+		     .awcache('0),
+		     .awprot('0),
+		     .awlock('0),
+		     .awregion('0),
+		     .awburst(awburst),
+		     .awid(awid),
+		     .awlen(awlen),
+		     .awqos('0),
+		     .awuser(awuser));
+      end
+   endtask // put_burst_aw_beat
+
+
+   /**************************************************************************
     * Add a simple write address beat to the queue of AXI4 Write Address beats
     * to be written.
     **************************************************************************/
@@ -333,6 +362,50 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    endtask // put_simple_w_beat
 
 
+   /**************************************************************************
+    * Add a simple write data beat to the queue of AXI4 write data beats to be
+    * written. A simple beat only requires data and last to be specified.
+    **************************************************************************/
+   task write_burst;
+      // Required ports
+      input logic [num_awaddr_bits-1:0]   awaddr;  // 32-bits by spec
+      input logic [num_awburst_bits-1:0]  awburst; // type of burst [see interface definition]
+
+      input logic [num_wdata_bits-1:0]	  wdata_arr[];
+
+      // Optional ports
+      input logic [num_awid_bits-1:0]	  awid   = '0;
+      input logic [num_awuser_bits-1:0]   awuser = '0;
+
+      input logic [num_awuser_bits-1:0]   wuser = '0;
+
+      // Task specific signals
+      logic				  wlast = '0;
+
+      begin
+	 // Add write address beat to the queue
+	 put_burst_aw_beat(.awaddr(awaddr),
+			   .awlen(wdata_arr.size()-1),
+			   .awburst(awburst),
+			   .awid(awid),
+			   .awuser(awuser));
+
+
+	 // Add write beats to the queue
+	 for(int i=0; i<wdata_arr.size(); i++) begin
+	    if(i == wdata_arr.size()-1)
+	      wlast = '1;
+
+	    put_w_beat(.wvalid('1),
+		       .wlast(wlast),
+		       .wdata(wdata_arr[i]),
+		       .wstrb('1),
+		       .wuser(wuser));
+	 end
+      end
+   endtask // burst_write
+
+
    ////////////////////////////////////////////////////////////////////////////
    // Read Address Functions
    ////////////////////////////////////////////////////////////////////////////
@@ -373,7 +446,6 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    endtask // put_ar_beat
 
 
-
    /**************************************************************************
     * Add a simple beat to the queue of AXI4 Read Address beats to be written.
     **************************************************************************/
@@ -401,6 +473,32 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
       end
    endtask // put_simple_ar_beat
 
+
+   /**************************************************************************
+    * Write a burst mode beat.
+    **************************************************************************/
+   task put_burst_ar_beat;
+      input logic [num_araddr_bits-1:0]   araddr;  // 32-bits by spec
+      input logic [num_arlen_bits-1:0]	  arlen;   // number of burst beats - 1
+      input logic [num_arburst_bits-1:0]  arburst; // type of burst [see interface definition]
+
+      input logic [num_arid_bits-1:0]	  arid   = '0;
+      input logic [num_aruser_bits-1:0]   aruser = '0;
+
+      begin
+	 put_ar_beat(.araddr(araddr),
+		     .arsize(num_wdata_bits/8),
+		     .arcache('0),
+		     .arprot('0),
+		     .arlock('0),
+		     .arregion('0),
+		     .arburst(arburst),
+		     .arid(arid),
+		     .arlen(arlen),
+		     .arqos('0),
+		     .aruser(aruser));
+      end
+   endtask // put_burst_ar_beat
 
 
    ////////////////////////////////////////////////////////////////////////////

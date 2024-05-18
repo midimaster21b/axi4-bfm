@@ -17,6 +17,11 @@ filesets:
       - src/tb/axi4_full_tb.sv
     file_type: systemVerilogSource
 
+  tb_burst:
+    files:
+      - src/tb/axi4_full_burst_tb.sv
+    file_type: systemVerilogSource
+
 targets:
   # Special FuseSoC target
   default: &default
@@ -24,7 +29,7 @@ targets:
     filesets:
       - rtl
 
-  # Simulation target
+  # Smoke simulation target
   sim_smoke:
     <<: *default
     description: Simulate the design
@@ -35,3 +40,15 @@ targets:
     filesets_append:
       - tb_smoke
     toplevel: axi4_full_tb
+
+  # Burst simulation target
+  sim_burst:
+    <<: *default
+    description: Simulate the design
+    default_tool: xsim
+    tools:
+      xsim:
+        xelab_options: [--debug all]
+    filesets_append:
+      - tb_burst
+    toplevel: axi4_full_burst_tb
