@@ -6,48 +6,48 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    // Bit widths
    ////////////////////////////////////////////////////////////////////////////
    // Write address channel
-   localparam num_awaddr_bits   = $bits(conn.awaddr); // 32-bits by spec
-   localparam num_awsize_bits   = $bits(conn.awsize);
-   localparam num_awcache_bits  = $bits(conn.awcache);
-   localparam num_awprot_bits   = $bits(conn.awprot);
-   localparam num_awlock_bits   = $bits(conn.awlock);
-   localparam num_awregion_bits = $bits(conn.awregion);
-   localparam num_awburst_bits  = $bits(conn.awburst);
-   localparam num_awid_bits     = $bits(conn.awid);
-   localparam num_awlen_bits    = $bits(conn.awlen);
-   localparam num_awqos_bits    = $bits(conn.awqos);
-   localparam num_awuser_bits   = $bits(conn.awuser);
+   localparam num_awaddr_bits   = conn.NUM_ADDR_BITS; // 32-bits by spec
+   localparam num_awsize_bits   = conn.NUM_SIZE_BITS;
+   localparam num_awcache_bits  = conn.NUM_CACHE_BITS;
+   localparam num_awprot_bits   = conn.NUM_PROT_BITS;
+   localparam num_awlock_bits   = conn.NUM_LOCK_BITS;
+   localparam num_awregion_bits = conn.NUM_REGION_BITS;
+   localparam num_awburst_bits  = conn.NUM_BURST_BITS;
+   localparam num_awid_bits     = conn.NUM_ID_BITS;
+   localparam num_awlen_bits    = conn.NUM_LEN_BITS;
+   localparam num_awqos_bits    = conn.NUM_QOS_BITS;
+   localparam num_awuser_bits   = conn.NUM_USER_BITS;
 
    // Write data channel
-   localparam num_wlast_bits    = $bits(conn.wlast);
-   localparam num_wdata_bits    = $bits(conn.wdata);
-   localparam num_wstrb_bits    = $bits(conn.wstrb);
-   localparam num_wuser_bits    = $bits(conn.wuser);
+   localparam num_wlast_bits    = conn.NUM_LAST_BITS;
+   localparam num_wdata_bits    = conn.NUM_DATA_BITS;
+   localparam num_wstrb_bits    = conn.NUM_STRB_BITS;
+   localparam num_wuser_bits    = conn.NUM_USER_BITS;
 
    // Write response channel
-   localparam num_bresp_bits    = $bits(conn.bresp);
-   localparam num_bid_bits      = $bits(conn.bid);
-   localparam num_buser_bits    = $bits(conn.buser);
+   localparam num_bresp_bits    = conn.NUM_RESP_BITS;
+   localparam num_bid_bits      = conn.NUM_ID_BITS;
+   localparam num_buser_bits    = conn.NUM_USER_BITS;
 
    // Read address channel
-   localparam num_araddr_bits   = $bits(conn.araddr); // 32-bits by spec
-   localparam num_arcache_bits  = $bits(conn.arcache);
-   localparam num_arprot_bits   = $bits(conn.arprot);
-   localparam num_arlock_bits   = $bits(conn.arlock);
-   localparam num_arregion_bits = $bits(conn.arregion);
-   localparam num_arsize_bits   = $bits(conn.arsize);
-   localparam num_arburst_bits  = $bits(conn.arburst);
-   localparam num_arid_bits     = $bits(conn.arid);
-   localparam num_arlen_bits    = $bits(conn.arlen);
-   localparam num_arqos_bits    = $bits(conn.arqos);
-   localparam num_aruser_bits   = $bits(conn.aruser);
+   localparam num_araddr_bits   = conn.NUM_ADDR_BITS; // 32-bits by spec
+   localparam num_arcache_bits  = conn.NUM_CACHE_BITS;
+   localparam num_arprot_bits   = conn.NUM_PROT_BITS;
+   localparam num_arlock_bits   = conn.NUM_LOCK_BITS;
+   localparam num_arregion_bits = conn.NUM_REGION_BITS;
+   localparam num_arsize_bits   = conn.NUM_SIZE_BITS;
+   localparam num_arburst_bits  = conn.NUM_BURST_BITS;
+   localparam num_arid_bits     = conn.NUM_ID_BITS;
+   localparam num_arlen_bits    = conn.NUM_LEN_BITS;
+   localparam num_arqos_bits    = conn.NUM_QOS_BITS;
+   localparam num_aruser_bits   = conn.NUM_USER_BITS;
 
    // Read data channel
-   localparam num_rlast_bits    = $bits(conn.rlast);
-   localparam num_rdata_bits    = $bits(conn.rdata);
-   localparam num_rresp_bits    = $bits(conn.rresp);
-   localparam num_rid_bits      = $bits(conn.rid);
-   localparam num_ruser_bits    = $bits(conn.ruser);
+   localparam num_rlast_bits    = conn.NUM_LAST_BITS;
+   localparam num_rdata_bits    = conn.NUM_DATA_BITS;
+   localparam num_rresp_bits    = conn.NUM_RESP_BITS;
+   localparam num_rid_bits      = conn.NUM_ID_BITS;
+   localparam num_ruser_bits    = conn.NUM_USER_BITS;
 
 
    ////////////////////////////////////////////////////////////////////////////
@@ -222,7 +222,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
       input logic [num_awqos_bits-1:0]	     awqos;
       input logic [num_awuser_bits-1:0]      awuser;
 
-      logic [$bits(aw_conn.data)-1:0]	     temp_aw;
+      logic [aw_conn.DATA_BITS-1:0]	     temp_aw;
 
       begin
 	 temp_aw[awaddr_offset   +: num_awaddr_bits  ] = awaddr  ;
@@ -313,7 +313,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
       input logic [num_wuser_bits-1:0]      wuser;
 
       // axi4_w_beat_t temp;
-      logic [$bits(w_conn.data)-1:0]  temp;
+      logic [w_conn.DATA_BITS-1:0]  temp;
 
       begin
 	 temp[wlast_offset +: num_wlast_bits] = wlast;
@@ -425,7 +425,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
       input logic [num_arqos_bits-1:0]    arqos;
       input logic [num_aruser_bits-1:0]   aruser;
 
-      logic [$bits(ar_conn.data)-1:0]	  temp;
+      logic [ar_conn.DATA_BITS-1:0]	  temp;
 
       begin
 	 temp[araddr_offset   +: num_araddr_bits]   = araddr  ;
@@ -453,7 +453,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
       input logic [num_araddr_bits-1:0]   araddr;
       input logic [num_arlen_bits-1:0]    arlen;
 
-      logic [$bits(ar_conn.data)-1:0]	  temp;
+      logic [ar_conn.DATA_BITS-1:0]	  temp;
 
       begin
 	 // Write the data to the bus
@@ -463,7 +463,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
 		     .arprot(0),
 		     .arlock(0),
 		     .arregion(0),
-		     .arsize($bits(conn.rdata)/8),
+		     .arsize(conn.DATA_BITS/8),
 		     .arburst(0),
 		     .arid(0),
 		     .arlen(arlen),
