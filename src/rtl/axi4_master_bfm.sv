@@ -463,7 +463,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
 		     .arprot(0),
 		     .arlock(0),
 		     .arregion(0),
-		     .arsize(conn.DATA_BITS/8),
+		     .arsize(conn.NUM_DATA_BITS/8),
 		     .arburst(0),
 		     .arid(0),
 		     .arlen(arlen),

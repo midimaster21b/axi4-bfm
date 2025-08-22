@@ -63,8 +63,8 @@ module axi4_full_burst_tb;
 
    axi4_if #(.DATA_BYTES(DATA_BYTES_P),
 	     .ADDR_BYTES(ADDR_BYTES_P),
-	     .NUM_ID_BITS_P(NUM_ID_BITS_P),
-	     .NUM_USER_BITS_P(NUM_USER_BITS_P)
+	     .NUM_ID_BITS(NUM_ID_BITS_P),
+	     .NUM_USER_BITS(NUM_USER_BITS_P)
 	     ) connector(.aclk(aclk), .aresetn(aresetn));
 
    /**************************************************************************
