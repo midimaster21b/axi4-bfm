@@ -575,7 +575,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    /***************************************************************************
     * Write address channel
     ***************************************************************************/
-   handshake_if #(.DATA_BITS($bits(axi4_aw_beat_t)-2)) aw_conn(.clk(conn.aclk), .rst(conn.aresetn));
+   handshake_if #(.DATA_BITS($bits(axi4_aw_beat_t)-2)) aw_conn(.clk(conn.aclk), .arstn(conn.aresetn));
    handshake_master #(.IFACE_NAME($sformatf("m_axi4_%s_aw", BFM_NAME))) write_addr(aw_conn);
 
    assign conn.awvalid     = aw_conn.valid;
@@ -596,7 +596,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    /***************************************************************************
     * Write data channel
     ***************************************************************************/
-   handshake_if #(.DATA_BITS($bits(axi4_w_beat_t)-2)) w_conn(.clk(conn.aclk), .rst(conn.aresetn));
+   handshake_if #(.DATA_BITS($bits(axi4_w_beat_t)-2)) w_conn(.clk(conn.aclk), .arstn(conn.aresetn));
    handshake_master #(.IFACE_NAME($sformatf("m_axi4_%s_w", BFM_NAME))) write_data(w_conn);
 
    assign conn.wvalid   = w_conn.valid;
@@ -610,7 +610,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    /***************************************************************************
     * Write response channel
     ***************************************************************************/
-   handshake_if #(.DATA_BITS($bits(axi4_b_beat_t)-2)) b_conn(.clk(conn.aclk), .rst(conn.aresetn));
+   handshake_if #(.DATA_BITS($bits(axi4_b_beat_t)-2)) b_conn(.clk(conn.aclk), .arstn(conn.aresetn));
    handshake_slave #(.IFACE_NAME($sformatf("m_axi4_%s_b", BFM_NAME))) bresp(b_conn);
 
    assign b_conn.valid = conn.bvalid;
@@ -623,7 +623,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    /***************************************************************************
     * Read address channel
     ***************************************************************************/
-   handshake_if #(.DATA_BITS($bits(axi4_ar_beat_t)-2)) ar_conn(.clk(conn.aclk), .rst(conn.aresetn));
+   handshake_if #(.DATA_BITS($bits(axi4_ar_beat_t)-2)) ar_conn(.clk(conn.aclk), .arstn(conn.aresetn));
    handshake_master #(.IFACE_NAME($sformatf("m_axi4_%s_ar", BFM_NAME))) read_address(ar_conn);
 
    assign conn.arvalid   = ar_conn.valid;
@@ -645,7 +645,7 @@ module axi4_master_bfm #(parameter BFM_NAME="test") (conn);
    /***************************************************************************
     * Read data channel
     ***************************************************************************/
-   handshake_if #(.DATA_BITS($bits(axi4_r_beat_t)-2)) r_conn(.clk(conn.aclk), .rst(conn.aresetn));
+   handshake_if #(.DATA_BITS($bits(axi4_r_beat_t)-2)) r_conn(.clk(conn.aclk), .arstn(conn.aresetn));
    handshake_slave #(.IFACE_NAME($sformatf("m_axi4_%s_r", BFM_NAME))) read_data(r_conn);
 
    assign r_conn.valid = conn.rvalid;
