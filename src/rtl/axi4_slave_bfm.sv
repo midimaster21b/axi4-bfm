@@ -1,12 +1,33 @@
 // QUESTION: Does awid need to increment for every write operation? No, I don't think so.
-module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
+// TODO:
+// - Mailbox for address and data on a mailbox/ID basis?
+// - Filter out by ID from handshake_slaves?
+// - Support AW before or after w
+// - Check final W length == awlen
+import mem_pkg::*;
+
+
+module axi4_slave_bfm #(parameter
+			BFM_NAME="test",
+			VERBOSITY="LOG",
+			W_CHAN_FAIL_ON_MISMATCH=0,
+			R_CHAN_FAIL_ON_MISMATCH=0,
+			NUM_BYTES=2048
+) (conn);
    axi4_if conn;
+
+   localparam bfm_name_str    = $sformatf("s_axi4_%s", BFM_NAME);
+   localparam bfm_name_aw_str = $sformatf("%s_aw", bfm_name_str);
+   localparam bfm_name_w_str  = $sformatf("%s_w",  bfm_name_str);
+   localparam bfm_name_b_str  = $sformatf("%s_b",  bfm_name_str);
+   localparam bfm_name_ar_str = $sformatf("%s_ar", bfm_name_str);
+   localparam bfm_name_r_str  = $sformatf("%s_r",  bfm_name_str);
 
    ////////////////////////////////////////////////////////////////////////////
    // Bit widths
    ////////////////////////////////////////////////////////////////////////////
    // Write address channel
-   localparam num_awaddr_bits   = conn.NUM_ADDR_BITS; // 32-bits by spec
+   localparam num_awaddr_bits   = conn.NUM_ADDR_BITS;
    localparam num_awsize_bits   = conn.NUM_SIZE_BITS;
    localparam num_awcache_bits  = conn.NUM_CACHE_BITS;
    localparam num_awprot_bits   = conn.NUM_PROT_BITS;
@@ -30,7 +51,7 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    localparam num_buser_bits    = conn.NUM_USER_BITS;
 
    // Read address channel
-   localparam num_araddr_bits   = conn.NUM_ADDR_BITS; // 32-bits by spec
+   localparam num_araddr_bits   = conn.NUM_ADDR_BITS;
    localparam num_arcache_bits  = conn.NUM_CACHE_BITS;
    localparam num_arprot_bits   = conn.NUM_PROT_BITS;
    localparam num_arlock_bits   = conn.NUM_LOCK_BITS;
@@ -49,6 +70,8 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    localparam num_rid_bits      = conn.NUM_ID_BITS;
    localparam num_ruser_bits    = conn.NUM_USER_BITS;
 
+   localparam num_wid_values    = 2**num_awid_bits;
+   localparam num_rid_values    = 2**num_arid_bits;
 
    ////////////////////////////////////////////////////////////////////////////
    // Offsets
@@ -102,104 +125,154 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    // Channel Structs
    ////////////////////////////////////////////////////////////////////////////
    // Write address channel
-   typedef struct {
-      logic                         awvalid;
-      logic			    awready;
-      logic [num_awaddr_bits-1:0]   awaddr; // 32-bits by spec
-      logic [num_awsize_bits-1:0]   awsize;
-      logic [num_awcache_bits-1:0]  awcache;
-      logic [num_awprot_bits-1:0]   awprot;
-      logic			    awlock;
-      logic [num_awregion_bits-1:0] awregion;
-      logic [num_awburst_bits-1:0]  awburst;
-      logic [num_awid_bits-1:0]     awid;
-      logic [num_awlen_bits-1:0]    awlen;
-      logic [num_awqos_bits-1:0]    awqos;
+   typedef struct packed {
       logic [num_awuser_bits-1:0]   awuser;
+      logic [num_awqos_bits-1:0]    awqos;
+      logic [num_awlen_bits-1:0]    awlen;
+      logic [num_awid_bits-1:0]     awid;
+      logic [num_awburst_bits-1:0]  awburst;
+      logic [num_awregion_bits-1:0] awregion;
+      logic			    awlock;
+      logic [num_awprot_bits-1:0]   awprot;
+      logic [num_awcache_bits-1:0]  awcache;
+      logic [num_awsize_bits-1:0]   awsize;
+      logic [num_awaddr_bits-1:0]   awaddr;
    } axi4_aw_beat_t;
 
    // Write data channel
-   typedef struct		    {
-      logic			    wvalid;
-      logic			    wready;
-      logic			    wlast;
-      logic [num_wdata_bits-1:0]    wdata;
-      logic [num_wstrb_bits-1:0]    wstrb;
+   typedef struct packed {
       logic [num_wuser_bits-1:0]    wuser;
+      logic [num_wstrb_bits-1:0]    wstrb;
+      logic [num_wdata_bits-1:0]    wdata;
+      logic			    wlast;
    } axi4_w_beat_t;
 
    // Write response channel
-   typedef struct		       {
-      logic			    bvalid;
-      logic			    bready;
-      logic [num_bresp_bits-1:0]    bresp;
-      logic [num_bid_bits-1:0]      bid;
+   typedef struct packed {
       logic [num_buser_bits-1:0]    buser;
+      logic [num_bid_bits-1:0]      bid;
+      logic [num_bresp_bits-1:0]    bresp;
    } axi4_b_beat_t;
 
    // Read address channel
-   typedef struct		    {
-      logic			    arvalid;
-      logic			    arready;
-      logic [num_araddr_bits-1:0]   araddr; // 32-bits by spec
-      logic [num_arcache_bits-1:0]  arcache;
-      logic [num_arprot_bits-1:0]   arprot;
-      logic			    arlock;
-      logic [num_arregion_bits-1:0] arregion;
-      logic [num_arsize_bits-1:0]   arsize;
-      logic [num_arburst_bits-1:0]  arburst;
-      logic [num_arid_bits-1:0]     arid;
-      logic [num_arlen_bits-1:0]    arlen;
-      logic [num_arqos_bits-1:0]    arqos;
+   typedef struct packed {
       logic [num_aruser_bits-1:0]   aruser;
+      logic [num_arqos_bits-1:0]    arqos;
+      logic [num_arlen_bits-1:0]    arlen;
+      logic [num_arid_bits-1:0]     arid;
+      logic [num_arburst_bits-1:0]  arburst;
+      logic [num_arsize_bits-1:0]   arsize;
+      logic [num_arregion_bits-1:0] arregion;
+      logic			    arlock;
+      logic [num_arprot_bits-1:0]   arprot;
+      logic [num_arcache_bits-1:0]  arcache;
+      logic [num_araddr_bits-1:0]   araddr; // 32-bits by spec
    } axi4_ar_beat_t;
 
    // Read data channel
-   typedef struct		    {
-      logic			    rvalid;
-      logic			    rready;
-      logic			    rlast;
-      logic [num_rdata_bits-1:0]    rdata;
-      logic [num_rresp_bits-1:0]    rresp;
-      logic [num_rid_bits-1:0]      rid;
+   typedef struct packed {
       logic [num_ruser_bits-1:0]    ruser;
+      logic [num_rid_bits-1:0]      rid;
+      logic [num_rresp_bits-1:0]    rresp;
+      logic [num_rdata_bits-1:0]    rdata;
+      logic			    rlast;
    } axi4_r_beat_t;
 
+   ////////////////////////////////////////////////////////////////////////////
+   // Burst Structs
+   ////////////////////////////////////////////////////////////////////////////
+   // Burst information
+   typedef struct packed {
+      longint base_addr;
+      longint length;
+      longint id;
+      logic [conn.NUM_BURST_BITS-1:0] burst_type;
+   } axi4_burst_t;
 
-   // Define the mailbox types for each channel
-   typedef mailbox		       #(axi4_aw_beat_t) axi4_aw_inbox_t;
-   typedef mailbox		       #(axi4_w_beat_t)  axi4_w_inbox_t;
-   typedef mailbox		       #(axi4_b_beat_t)  axi4_b_inbox_t;
-   typedef mailbox		       #(axi4_ar_beat_t) axi4_ar_inbox_t;
-   typedef mailbox		       #(axi4_r_beat_t)  axi4_r_inbox_t;
+   // Write address burst
+   typedef struct packed {
+      logic valid;
+      longint base_addr;
+      longint length;
+      longint byte_count;
+      logic [num_awid_bits-1:0]	id;
+      logic [num_awburst_bits-1:0] burst_type;
+   } axi4_burst_tracker_t;
 
-   // Create mailboxes for tx/rx beats
-   axi4_aw_inbox_t axi4_aw_inbox  = new();
-   axi4_w_inbox_t  axi4_w_inbox   = new();
-   axi4_b_inbox_t  axi4_b_inbox   = new();
-   axi4_ar_inbox_t axi4_ar_inbox  = new();
-   axi4_r_inbox_t  axi4_r_inbox   = new();
+   axi4_burst_tracker_t disabled_burst = '{default: '0};
 
-   // Create mailboxes for expected beats
-   axi4_aw_inbox_t axi4_aw_expect = new();
-   axi4_w_inbox_t  axi4_w_expect  = new();
-   axi4_b_inbox_t  axi4_b_expect  = new();
-   axi4_ar_inbox_t axi4_ar_expect = new();
-   axi4_r_inbox_t  axi4_r_expect  = new();
+   typedef mailbox #(axi4_burst_t) axi4_aw_burst_inbox_t;
+   typedef mailbox #(axi4_burst_t) axi4_ar_burst_inbox_t;
 
-   // Empty beats
-   axi4_aw_beat_t empty_aw_beat = '{default: '0};
-   axi4_w_beat_t  empty_w_beat  = '{default: '0};
-   axi4_b_beat_t  empty_b_beat  = '{default: '0};
-   axi4_ar_beat_t empty_ar_beat = '{default: '0};
-   axi4_r_beat_t  empty_r_beat  = '{default: '0};
+   // Queue for each ID (so AW addr and W data can be associated with each other)
+   axi4_aw_burst_inbox_t axi4_aw_burst_inbox = new();
+   axi4_ar_burst_inbox_t axi4_ar_burst_inbox[num_rid_values-1:0];
 
-   // Temporary usable beats
-   axi4_aw_beat_t temp_aw_beat;
-   axi4_w_beat_t  temp_w_beat;
-   axi4_b_beat_t  temp_b_beat;
-   axi4_ar_beat_t temp_ar_beat;
-   axi4_r_beat_t  temp_r_beat;
+   // Current burst trackers
+   axi4_burst_tracker_t curr_aw_burst = disabled_burst;
+   axi4_burst_tracker_t curr_ar_burst = disabled_burst;
+
+   // Memory model
+   mem_model #(.BASE_ADDR(0), .ADDR_WIDTH(32), .LENGTH(NUM_BYTES), .FAIL_ON_MISMATCH(1)) u_mem = new();
+
+   // // Burst mailboxes
+   // typedef mailbox #(axi4_burst_t)   axi4_wburst_inbox_t;
+   // typedef mailbox #(axi4_burst_t)   axi4_rburst_inbox_t;
+
+   // axi4_wburst_inbox_t axi4_wburst_inbox[num_id_values-1:0];
+   // axi4_rburst_inbox_t axi4_rburst_inbox[num_id_values-1:0];
+
+   // longint wlast_count[num_id_values-1:0] = '{default: 0};
+   // longint aw_count[num_id_values-1:0]    = '{default: 0};
+
+   ////////////////////////////////////////////////////////////////////////////
+   // Write Functions
+   ////////////////////////////////////////////////////////////////////////////
+   /**************************************************************************
+    * Expect a specific beat of write channel data
+    **************************************************************************/
+   // Write data channel
+   task expect_w_beat (
+			logic [num_wdata_bits-1:0] data = '0,
+			logic [num_wstrb_bits-1:0] strb = '1,
+			logic			   last = '0,
+			logic [num_wuser_bits-1:0] user = '0
+		       );
+
+      axi4_w_beat_t tmp_w_beat;
+      begin
+	 $timeformat(-9, 2, " ns", 20);
+
+	 tmp_w_beat.wdata = data;
+	 tmp_w_beat.wstrb = strb;
+	 tmp_w_beat.wlast = last;
+	 tmp_w_beat.wuser = user;
+
+	 $display("%t: %s - Write Channel - Expecting Data: %X, Keep: %x, Last: %x, User: %x", $time, bfm_name_str, tmp_w_beat.wdata, tmp_w_beat.wstrb, tmp_w_beat.wlast, tmp_w_beat.wuser);
+
+	 write_data_ch.expect_beat(tmp_w_beat);
+      end
+   endtask // expect_w_beat
+
+   /**************************************************************************
+    * Expect a specific beat of write channel data
+    **************************************************************************/
+   task expect_w_mem (
+		      logic [num_wdata_bits-1:0] data = '0,
+		      logic [num_awaddr_bits-1:0] addr = '0
+		      );
+      begin
+	 $timeformat(-9, 2, " ns", 20);
+	 $display("%t: %s - Write Channel - Expecting - Addr: %X, Data: %X", $time, bfm_name_str, addr, data);
+
+	 for(int x=0; x<($bits(data)/8)-1; x++) begin
+	    u_mem.write_expect_byte(.addr(addr+x), .data(data[x*8+:8]));
+	 end
+      end
+   endtask // expect_w_mem
+
+
+
 
 
    ////////////////////////////////////////////////////////////////////////////
@@ -208,18 +281,16 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    /**************************************************************************
     * Add a beat to the queue of AXI4 Write Response beats to be written.
     **************************************************************************/
-   task put_b_beat;
-      input logic [num_bresp_bits-1:0]    bresp;
-      input logic [num_bid_bits-1:0]      bid;
-      input logic [num_buser_bits-1:0]    buser;
-
-      // axi4_w_beat_t temp;
-      logic [b_conn.DATA_BITS-1:0]  temp;
-
+   task put_b_beat (
+      input logic [num_bresp_bits-1:0] bresp = '0,
+      input logic [num_bid_bits-1:0]   bid   = '0,
+      input logic [num_buser_bits-1:0] buser = '0
+   );
+      axi4_b_beat_t temp;
       begin
-	 temp[bresp_offset +: num_bresp_bits ] = bresp;
-	 temp[bid_offset   +: num_bid_bits   ] = bid  ;
-	 temp[buser_offset +: num_buser_bits ] = buser;
+	 temp.bresp = bresp;
+	 temp.bid   = bid  ;
+	 temp.buser = buser;
 
 	 // Write the response data to the bus
 	 write_resp_ch.put_simple_beat(temp);
@@ -333,8 +404,8 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    /***************************************************************************
     * Write address channel
     ***************************************************************************/
-   handshake_if #(.DATA_BITS($bits(axi4_aw_beat_t)-2)) aw_conn(.clk(conn.aclk), .arstn(conn.aresetn));
-   handshake_slave #(.ALWAYS_READY(0), .IFACE_NAME($sformatf("s_axi4_%s_aw", BFM_NAME))) write_addr_ch(aw_conn);
+   handshake_if #(.DATA_BITS($bits(axi4_aw_beat_t))) aw_conn(.clk(conn.aclk), .arstn(conn.aresetn));
+   handshake_slave #(.ALWAYS_READY(0), .IFACE_NAME(bfm_name_aw_str)) write_addr_ch(aw_conn);
 
    assign aw_conn.valid = conn.awvalid ;
    assign conn.awready  = aw_conn.ready;
@@ -354,8 +425,13 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    /***************************************************************************
     * Write data channel
     ***************************************************************************/
-   handshake_if #(.DATA_BITS($bits(axi4_w_beat_t)-2)) w_conn(.clk(conn.aclk), .arstn(conn.aresetn));
-   handshake_slave #(.ALWAYS_READY(1), .IFACE_NAME($sformatf("s_axi4_%s_w", BFM_NAME))) write_data_ch(w_conn);
+   handshake_if #(.DATA_BITS($bits(axi4_w_beat_t))) w_conn(.clk(conn.aclk), .arstn(conn.aresetn));
+   handshake_slave #(
+		     .ALWAYS_READY(1),
+		     .IFACE_NAME(bfm_name_w_str),
+		     .FAIL_ON_MISMATCH(W_CHAN_FAIL_ON_MISMATCH),
+		     .VERBOSE("FALSE")
+		     ) write_data_ch(w_conn);
 
    assign w_conn.valid = conn.wvalid ;
    assign conn.wready  = w_conn.ready;
@@ -368,8 +444,8 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    /***************************************************************************
     * Write response channel
     ***************************************************************************/
-   handshake_if #(.DATA_BITS($bits(axi4_b_beat_t)-2)) b_conn(.clk(conn.aclk), .arstn(conn.aresetn));
-   handshake_master #(.IFACE_NAME($sformatf("s_axi4_%s_b", BFM_NAME))) write_resp_ch(b_conn);
+   handshake_if #(.DATA_BITS($bits(axi4_b_beat_t))) b_conn(.clk(conn.aclk), .arstn(conn.aresetn));
+   handshake_master #(.IFACE_NAME(bfm_name_b_str)) write_resp_ch(b_conn);
 
    assign conn.bvalid = b_conn.valid;
    assign b_conn.ready = conn.bready;
@@ -381,8 +457,8 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    /***************************************************************************
     * Read address channel
     ***************************************************************************/
-   handshake_if #(.DATA_BITS($bits(axi4_ar_beat_t)-2)) ar_conn(.clk(conn.aclk), .arstn(conn.aresetn));
-   handshake_slave #(.ALWAYS_READY(0), .IFACE_NAME($sformatf("s_axi4_%s_ar", BFM_NAME))) read_addr_ch(ar_conn);
+   handshake_if #(.DATA_BITS($bits(axi4_ar_beat_t))) ar_conn(.clk(conn.aclk), .arstn(conn.aresetn));
+   handshake_slave #(.ALWAYS_READY(0), .IFACE_NAME(bfm_name_ar_str)) read_addr_ch(ar_conn);
 
    assign ar_conn.valid = conn.arvalid ;
    assign conn.arready   = ar_conn.ready;
@@ -403,8 +479,8 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
    /***************************************************************************
     * Read data channel
     ***************************************************************************/
-   handshake_if #(.DATA_BITS($bits(axi4_r_beat_t)-2)) r_conn(.clk(conn.aclk), .arstn(conn.aresetn));
-   handshake_master #(.IFACE_NAME($sformatf("s_axi4_%s_r", BFM_NAME))) read_data_ch(r_conn);
+   handshake_if #(.DATA_BITS($bits(axi4_r_beat_t))) r_conn(.clk(conn.aclk), .arstn(conn.aresetn));
+   handshake_master #(.IFACE_NAME(bfm_name_r_str)) read_data_ch(r_conn);
 
    assign conn.rvalid  = r_conn.valid;
    assign r_conn.ready = conn.rready ;
@@ -418,32 +494,120 @@ module axi4_slave_bfm #(parameter BFM_NAME="test") (conn);
 
 
    ////////////////////////////////////////////////////////////////////////////
-   // Write channel
+   // Write channels
    ////////////////////////////////////////////////////////////////////////////
-   logic [w_conn.DATA_BITS-1:0] tmp_w_beat;
+   // Write address channel
+   axi4_aw_beat_t tmp_aw_beat;
+   axi4_burst_t   tmp_aw_burst;
+
+   // Store address write transactions
+   initial
+   begin
+      $timeformat(-9, 2, " ns", 20);
+
+      forever begin
+	 // Retrieve Write Address
+	 write_addr_ch.get_beat(.data(tmp_aw_beat));
+
+	 // Queue Write Address and length
+	 tmp_aw_burst.base_addr  = tmp_aw_beat.awaddr;
+	 tmp_aw_burst.length     = tmp_aw_beat.awlen;
+	 tmp_aw_burst.burst_type = tmp_aw_beat.awburst;
+
+	 // Put the AW burst into the ID-matched mailbox
+	 axi4_aw_burst_inbox.put(tmp_aw_burst);
+
+      end // forever begin
+   end // initial begin
+
+
+   // Write data channel
+   axi4_w_beat_t tmp_w_beat;
+   longint tmp_waddr;
 
    initial
    begin
+      $timeformat(-9, 2, " ns", 20);
+
       forever begin
 	 write_data_ch.get_beat(.data(tmp_w_beat));
 
-	 // If this is the last beat of data
-	 if(tmp_w_beat[wlast_offset] == '1) begin
-	    // Submit write reponse
-	    put_simple_b_beat(.bresp(0));
-	 end
+	 $display("%t: %s - Write Channel - Data: %X, Kepp: %x, Last: %x, User: %x", $time, bfm_name_str, tmp_w_beat.wdata, tmp_w_beat.wstrb, tmp_w_beat.wlast, tmp_w_beat.wuser);
+
+	 // Put in mailbox
+	 axi4_w_inbox.put(tmp_w_beat);
       end
    end
+
+
+   // Write response channel
+   axi4_burst_t aw_burst_peek;
+   axi4_w_beat_t w_data_beat;
+   logic [7:0] tmp_wdata[];
+
+   initial
+     begin
+	$timeformat(-9, 2, " ns", 20);
+
+	forever begin
+	   // If data empty OR empty address and disabled current burst
+	   if(axi4_w_inbox.num() == 0 || (axi4_aw_burst_inbox.num() == 0 && curr_aw_burst == disabled_burst)) begin
+	      @(posedge conn.aclk);
+	      continue;
+	   end
+
+	   // If this is the first data beat for the transaction
+	   if(curr_aw_burst == disabled_burst) begin
+	      axi4_aw_burst_inbox.peek(aw_burst_peek);
+
+	      curr_aw_burst.valid = '1;
+	      curr_aw_burst.byte_count = 0;
+	      curr_aw_burst.base_addr  = aw_burst_peek.base_addr;
+	      curr_aw_burst.length     = aw_burst_peek.length;
+	      curr_aw_burst.id         = aw_burst_peek.id;
+	      curr_aw_burst.burst_type = aw_burst_peek.burst_type;
+
+	      u_mem.burst_write_addr(.addr(curr_aw_burst.base_addr));
+	   end // if (curr_aw_burst == disabled_burst)
+
+	   // Write all data out to memory
+	   while(axi4_w_inbox.num() > 0) begin
+	      // Get the next write beat
+	      axi4_w_inbox.get(w_data_beat);
+
+	      // For all bytes in the data beat, write to memory
+	      for(int x=0; x<(conn.NUM_DATA_BITS/8)-1; x++) begin
+		 u_mem.burst_write_byte(.data(w_data_beat.wdata[x*8+:8]));
+	      end
+
+	      // Increment the number of bytes written
+	      curr_aw_burst.byte_count += (conn.NUM_DATA_BITS / 8);
+
+	      // If last write beat in transaction
+	      if(w_data_beat.wlast == '1) begin
+		 // Queue a response to the ID
+		 // TODO: Send back correct response
+		 // Ex. if curr_aw_burst.length != curr_aw_burst.byte_count -- ERROR
+		 put_b_beat(.bresp(0), .bid(curr_aw_burst.id));
+
+		 // Pop the burst transaction
+		 axi4_aw_burst_inbox.get(aw_burst_peek);
+
+		 // Disable burst
+		 curr_aw_burst = disabled_burst;
+		 break;
+	      end // if (w_data_beat.wlast == '1)
+	   end // while (axi4_w_inbox.num() > 0)
+	end // forever begin
+     end // initial begin
 
 
    ////////////////////////////////////////////////////////////////////////////
    // Read channel
    ////////////////////////////////////////////////////////////////////////////
-   // logic [$bits(ar_conn)-1:0] tmp_ar_beat;
-
-   logic [ar_conn.DATA_BITS-1:0] tmp_ar_beat;
-   int			      num_burst_beats = 0;
-   logic		      tmp_rlast = 0;
+   axi4_ar_beat_t tmp_ar_beat;
+   int            num_burst_beats = 0;
+   logic          tmp_rlast = 0;
 
    initial
    begin
